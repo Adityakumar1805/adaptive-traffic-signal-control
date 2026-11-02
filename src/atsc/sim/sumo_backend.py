@@ -29,7 +29,7 @@ back to :class:`~atsc.sim.mini_backend.MiniBackend`.
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Dict, Iterable, List, Optional, Set
+from typing import Dict, Iterable, List, Optional, Set, Tuple
 
 from atsc.sim.backend import (
     APPROACHES,
@@ -39,6 +39,9 @@ from atsc.sim.backend import (
     StepOutcome,
 )
 from atsc.sim import netgen
+
+
+_PETROL_MG_PER_ML = 745.0     # density of petrol: fuel in mg -> ml
 
 
 class SumoBackend(SimBackend):
@@ -62,6 +65,7 @@ class SumoBackend(SimBackend):
         self._emerg_cleared: Dict[str, int] = {}
         self._known_emerg: Set[str] = set()
         self._arrived_emerg: Set[str] = set()
+        self._emerg_routes: Dict[str, List[str]] = {}   # injected vehicle -> its edge list
         self._scenario: Dict = {}
         self._emerg_counter = 0
         # last-known accumulated wait + depart time per present vehicle, so we can
@@ -102,7 +106,7 @@ class SumoBackend(SimBackend):
         binary = info.gui_binary if self.use_gui else info.binary
         if binary is None:
             binary = "sumo-gui" if self.use_gui else "sumo"
-        return [
+        cmd = [
             binary,
             "-c", str(sumocfg),
             "--step-length", str(self._step_len),
@@ -111,6 +115,12 @@ class SumoBackend(SimBackend):
             "--time-to-teleport", "-1",
             "--waiting-time-memory", str(int(self.cfg.eval.episode_seconds)),
         ]
+        if self.use_gui:
+            # sumo-gui serves TraCI only once its simulation runs: without --start it waits
+            # for someone to press Play, and the client gives up after its connection
+            # retries. --quit-on-end closes the window when the episode is over.
+            cmd += ["--start", "true", "--quit-on-end", "true"]
+        return cmd
 
     # ------------------------------------------------------------------ #
     # lifecycle
@@ -137,6 +147,7 @@ class SumoBackend(SimBackend):
         self._green = {iid: set() for iid in self.topo.order}
         self._known_emerg = set()
         self._arrived_emerg = set()
+        self._emerg_routes = {}
         self._emerg_counter = 0
         self._veh_wait = {}
         self._veh_depart = {}
@@ -282,7 +293,11 @@ class SumoBackend(SimBackend):
             speeds = [conn.vehicle.getSpeed(v) for v in veh_ids]
             mean_speed = sum(speeds) / present
             try:
-                fuel_ml = sum(conn.vehicle.getFuelConsumption(v) for v in veh_ids) * self._step_len
+                # SUMO reports fuel in mg/s (since 1.14) and CO2 in mg/s. Every vehicle here
+                # has the default emission class, a petrol car (HBEFA3/PC_G_EU4), so mg of
+                # fuel become ml at petrol's ~745 mg/ml.
+                fuel_mg = sum(conn.vehicle.getFuelConsumption(v) for v in veh_ids) * self._step_len
+                fuel_ml = fuel_mg / _PETROL_MG_PER_ML
                 co2_g = sum(conn.vehicle.getCO2Emission(v) for v in veh_ids) * self._step_len / 1000.0
             except Exception:
                 fuel_ml = 0.30 * halted_total
@@ -416,11 +431,70 @@ class SumoBackend(SimBackend):
         self._emerg_counter += 1
         vid = f"EMG{self._emerg_counter}"
         route_id = f"route_{vid}"
+        edges = netgen.straight_corridor_edges(self.topo, entry, appr)
         try:
-            conn.route.add(route_id, netgen.straight_corridor_edges(self.topo, entry, appr))
+            conn.route.add(route_id, edges)
             conn.vehicle.add(vid, routeID=route_id, typeID="emergency",
                              departLane="best", departSpeed="max")
         except Exception:
             return None
         self._known_emerg.add(vid)
+        self._emerg_routes[vid] = list(edges)
         return vid
+
+    def emergency_routes(self) -> List[Tuple[str, List[Tuple[str, str]], float]]:
+        """See :meth:`SimBackend.emergency_routes`, built from each emergency vehicle's SUMO
+        route: the junction at the downstream end of every edge it still has to drive, with the
+        approach that edge feeds. A vehicle on a junction's internal lanes has already crossed
+        that junction; one SUMO has not inserted yet counts as on its way to its first
+        junction. A halted vehicle counts as waiting (``eta_s`` 0)."""
+        out: List[Tuple[str, List[Tuple[str, str]], float]] = []
+        live = self._known_emerg - self._arrived_emerg
+        if not live:
+            return out
+        conn = self._conn
+        try:
+            present = set(conn.vehicle.getIDList())
+        except Exception:
+            return out
+        for vid in sorted(live, key=_emergency_order):
+            inside, eta = False, _NOT_INSERTED_ETA
+            try:
+                if vid in present:
+                    route = list(conn.vehicle.getRoute(vid))
+                    start = max(0, int(conn.vehicle.getRouteIndex(vid)))
+                    inside = conn.vehicle.getRoadID(vid).startswith(":")
+                    speed = float(conn.vehicle.getSpeed(vid))
+                    if not inside:
+                        lane = conn.vehicle.getLaneID(vid)
+                        left = conn.lane.getLength(lane) - conn.vehicle.getLanePosition(vid)
+                        eta = 0.0 if speed < 0.1 else max(0.0, left) / speed
+                elif vid in self._emerg_routes:          # added, waiting to be inserted
+                    route, start = self._emerg_routes[vid], 0
+                else:
+                    continue
+            except Exception:
+                continue
+            legs: List[Tuple[str, str]] = []
+            for edge in route[start:]:
+                dst = edge.split("__", 1)[1] if "__" in edge else ""
+                if dst in self.topo.intersections:
+                    approach = self._approach_of_edge(dst, edge)
+                    if approach is not None:
+                        legs.append((dst, approach))
+            if inside:                                   # crossing legs[0] right now
+                legs = legs[1:]
+            if legs:
+                out.append((vid, legs, eta))
+        return out
+
+
+# Corridor priority for a vehicle SUMO has not inserted yet (or one inside a junction, whose
+# next junction is a whole link away): behind any vehicle already on its way.
+_NOT_INSERTED_ETA = 1.0e6
+
+
+def _emergency_order(vid: str):
+    """Dispatch order of the ``EMG<n>`` ids this backend hands out (others last)."""
+    tail = vid[3:]
+    return (0, int(tail), vid) if vid.startswith("EMG") and tail.isdigit() else (1, 0, vid)

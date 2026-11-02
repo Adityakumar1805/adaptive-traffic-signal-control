@@ -479,6 +479,20 @@ class MiniBackend(SimBackend):
         out.sort(key=lambda e: vehicle_number(e[0].id))
         return out
 
+    def emergency_routes(self) -> List[Tuple[str, List[Tuple[str, str]], float]]:
+        """See :meth:`SimBackend.emergency_routes`: every emergency vehicle with the junctions
+        still ahead of it (the one it waits at or drives to first), in dispatch order."""
+        out: List[Tuple[str, List[Tuple[str, str]], float]] = []
+        for q in self._queues.values():
+            for veh in q:
+                if veh.is_emergency:
+                    out.append((veh.id, list(veh.legs[veh.leg_index:]), 0.0))
+        for veh, remaining, _dest_tls, _dest_appr in self._transit:
+            if veh.is_emergency:
+                out.append((veh.id, list(veh.legs[veh.leg_index:]), max(0.0, float(remaining))))
+        out.sort(key=lambda e: vehicle_number(e[0]))
+        return out
+
     @staticmethod
     def _boundary_point(dest, approach: str, link: float) -> Tuple[float, float]:
         if approach == "N":

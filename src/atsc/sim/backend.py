@@ -301,6 +301,23 @@ class SimBackend(abc.ABC):
                          kind: str = "ambulance") -> Optional[str]:
         """Spawn one emergency vehicle of ``kind``; return its id (or None if not possible)."""
 
+    def emergency_routes(self) -> List[Tuple[str, List[Tuple[str, str]], float]]:
+        """Every emergency vehicle in the network with the junctions still ahead of it.
+
+        One ``(vehicle id, [(junction, approach), ...], eta_s)`` per vehicle, in dispatch
+        order. The first junction is the one the vehicle is waiting at (``eta_s`` 0) or
+        driving towards (``eta_s`` = seconds until it gets there); the rest follow in route
+        order, each with the approach the vehicle will arrive on. Corridor preemption
+        (:mod:`atsc.control.emergency`) reads this.
+
+        This default only knows the vehicles waiting at a stop line (:meth:`emergency_present`)
+        and not their routes, so a corridor built on it is plain stop-line preemption; both
+        backends in this package override it with the real routes.
+        """
+        return [(f"{iid}:{a}", [(iid, a)], 0.0)
+                for iid in self.topo.order for a in APPROACHES
+                if self.emergency_present(iid, a)]
+
     # -- convenience ------------------------------------------------------ #
     def finalize(self) -> None:
         """Fold any end-of-episode bookkeeping into metrics. Default: no-op."""

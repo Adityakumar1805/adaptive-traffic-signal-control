@@ -2,7 +2,7 @@
 
 ## 1.0.0 — first release
 
-Multi-agent deep reinforcement learning for adaptive traffic signal control on a 2 × 2 grid,
+Multi-agent deep reinforcement learning for traffic signal control on a 2 × 2 grid,
 a reproducible benchmark against two baselines, and a live web dashboard that races the
 learned policy against a fixed-time controller on identical traffic.
 
@@ -16,7 +16,11 @@ learned policy against a fixed-time controller on identical traffic.
   3 s amber and 2 s all-red at every change; conflicting greens are unreachable states,
   tested over 18,000 randomised steps.
 - **Emergency preemption** for ambulances, police cars and fire engines, forced through the
-  same safety gate, with clearance time measured as a KPI.
+  same safety gate: the RL system clears a green corridor along the vehicle's route (every
+  junction still ahead of it requests its phase from the moment it is sent), the baselines
+  pre-empt at the stop line. Clearance time is measured as a KPI, and
+  `tools/emergency_eval.py` compares every emergency type with fixed-time over 1,000 matched
+  dispatches each (`outputs/emergency/`): all three get through faster under RL.
 - Baselines: an honest **fixed-time** plan (30 s per direction) and **max-pressure**.
 - Curriculum training (`python run.py train`), with the trained checkpoint shipped in
   `models/pretrained/atsc_2x2.pt`.
@@ -33,11 +37,12 @@ learned policy against a fixed-time controller on identical traffic.
 
 - 3 controllers × 4 demand levels × 3 seeds = **36 runs** (`python run.py eval`), written to
   `outputs/benchmark_results.csv`, `benchmark_summary.csv` / `.md` and the KPI plots. The RL
-  agents cut waiting time by 15 % (light) to 61 % (rush hour) against fixed-time, and get an
-  ambulance through up to 3.5× faster; max-pressure is better at low and medium demand,
+  agents cut waiting time by 16 % (light) to 61 % (rush hour) against fixed-time, and get an
+  ambulance through up to 4.5× faster; max-pressure is better at low and medium demand,
   which the report states.
 - CI reruns the benchmark on every push, with PyTorch and with the NumPy network, and fails
-  if a single byte of the CSVs changes.
+  if a single byte of the CSVs changes; it also reruns the emergency-vehicle evaluation, which
+  must reproduce `outputs/emergency/` and find every emergency type faster under RL.
 
 ### Live dashboard (`python run.py demo`, or the hosted site)
 
@@ -66,6 +71,7 @@ learned policy against a fixed-time controller on identical traffic.
 - `render.yaml` (Render Blueprint, free plan), `asgi.py`, a pinned
   `requirements-deploy.txt` without torch, a `Dockerfile` and a `Procfile`;
   `docs/DEPLOYMENT.md` has the steps and a post-deploy checklist.
-- 172 pytest tests (environment, safety, reward, replay, controllers, benchmark maths, wire
-  protocol, servers, vehicles, page and emergency tracking), a Playwright browser check
+- 189 pytest tests (environment, safety, reward, replay, controllers, emergency preemption and
+  its evaluation, benchmark maths, wire protocol, servers, vehicles, page and emergency
+  tracking), a Playwright browser check
   (`tools/e2e_browser.py`) and a server benchmark (`tools/bench_server.py`).

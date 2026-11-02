@@ -22,7 +22,8 @@ only *requests*, the safety FSM enforces legality. *(`envs/phases.py`)*
 
 **4. Reward (one line).**
 `r = −1.0·delay/40 − 0.30·pressure/40 − 0.20·switched + 5.0·emergency_cleared`
-(minimise waiting & queues; penalise flicker; big bonus for clearing ambulances).
+(minimise waiting & queues; penalise flicker; big bonus for clearing ambulances — though
+training never sends one, so in practice the policy learns from the first three terms).
 *(`traffic_env._rewards`, weights in `config.yaml → reward`)*
 
 **5. Algorithm (one line).** Double DQN (kills Q over-estimation) + Dueling network (value vs
@@ -31,9 +32,9 @@ steps; Adam lr 5e-4, γ 0.99, batch 64, hidden [128,128], Huber loss. *(`config.
 `agents/double_dqn_agent.py`)*
 
 **6. Headline results (memorise the table).** RL vs fixed-time, identical seeds:
-Low **−15%**, Medium **−27%**, High **−49%**, Rush **−61%**, mean **≈38%**. Against the
-strong **max-pressure** baseline: max-pressure wins at low and medium, RL edges it at high
-(35.2 vs 35.6 s) and wins clearly at rush (43.9 vs 50.5 s). *(`outputs/benchmark_summary.md`)*
+Low **−16%**, Medium **−28%**, High **−48%**, Rush **−61%**, mean **≈38%**. Against the
+strong **max-pressure** baseline: max-pressure wins at low and medium, RL draws level at high
+(35.6 s each) and wins clearly at rush (43.9 vs 50.5 s). *(`outputs/benchmark_summary.md`)*
 
 **7. Safety guarantee (say it with confidence).** The agent never drives the lights. A
 finite-state machine (`phases.py`) enforces min-green 10 s, max-green 60 s, mandatory 3 s
@@ -47,12 +48,16 @@ a starvation guarantee.
 pressure + phase in the state (no central controller); by default they share network weights.
 That coordination is what produces green waves.
 
-**9. Emergency preemption (real number).** Rule-based override forces a green corridor for an
-ambulance once it reaches a stop line (still through yellow/all-red); it runs for every
-controller. Measured clearance **1.3× (low) → 3.5× (rush)** faster than fixed-time — the RL
-grid's shorter queues get the ambulance to the stop line sooner. *(Do NOT say 10×.)*
-*(`control/emergency.py`, `outputs/benchmark_results.csv`)* On the dashboard you can also
-dispatch a police car or a fire engine.
+**9. Emergency preemption (real number).** A rule-based override, never learned: on the RL
+grid it clears a **green corridor** — the moment an emergency vehicle is sent, every junction
+still ahead of it requests its phase until it has crossed; the fixed-time grid pre-empts a
+junction only once the vehicle waits there. Both go through yellow/all-red. Measured
+clearance **1.4× (low) → 4.5× (rush)** faster than fixed-time. *(Do NOT say 10×.)* Per type
+(`tools/emergency_eval.py`, 1,000 matched dispatches each): ambulance **−60%**, police car
+**−9%**, fire engine **−59%** travel time. *Know the caveat:* the police car is on the side
+street, where the agents give less green — its lead comes from the corridor, is only 0.5 s at
+rush, and with the same preemption on both grids it would be slower under RL.
+*(`control/emergency.py`, `outputs/emergency/emergency_results.md`)*
 
 **10. Baselines & fairness.** Compared against **fixed-time (30/30 s)** AND **max-pressure**
 (near-optimal adaptive) on **byte-identical traffic** (same seed → same cars). *(`eval/benchmark.py`)*
@@ -73,14 +78,16 @@ left and the Traditional Traffic System on the right, on identical traffic. Pres
 emergency vehicle → Send ambulance**: the same ambulance enters both grids, the race drops to
 slow motion, and the line above each map says where it is and why (*Waiting 0:12 · Red light
 at J1_0 · 9 vehicles ahead · Junction 1 of 2*). The tracker under the maps says which system
-has it further along, and once it is through both grids the race pauses on the result — in
-one rush-hour run *RL Agent System got it through 3.5× faster · 1:45 sooner*. Every word
+has it further along, and once it is through both grids the race pauses on the result — for
+an ambulance at rush hour about 4× faster on average (*RL Agent System got it through …×
+faster*). Every word
 comes from the simulator's own queues and links. *(`dashboard/session.py`, `static/js/tracker.js`)*
 
 ---
 
-**Two things NOT to overstate:** emergency clearance is **~1.3–3.5×**, not 10×; and rush is
-**sustained heavy demand**, not a time-varying spike (that's the limitation).
+**Three things NOT to overstate:** emergency clearance is **~1.4–4.5×**, not 10×; the police
+car's lead is small (−9% on average, 0.5 s at rush); and rush is **sustained heavy demand**,
+not a time-varying spike (that's the limitation).
 
 **If you forget everything else:** *state = 23 numbers (queues + waits + phase + neighbours +
 emergency); action = pick NS or EW; reward = minimise delay, penalise flicker, reward

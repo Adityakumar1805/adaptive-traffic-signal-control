@@ -447,6 +447,11 @@ def test_play_pause_step_or_a_new_vehicle_take_over_from_the_pause_on_a_result(t
         assert s.auto_mode() == 2
         s.submit(cmd)
         _tick(s, model)
+        if cmd["a"] == "inject" and s._pairs_through > 1:
+            # the race went on for the new vehicle, which got through both grids within this
+            # one 8x tick: the pause that follows is its own result
+            assert s.auto_mode() == 2
+            continue
         assert s.playing is playing and s.auto_mode() == 0
         for _ in range(round(5 / s.tick_s) + 2):        # and the pause does not come back
             _tick(s, model)

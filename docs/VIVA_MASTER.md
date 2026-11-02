@@ -14,7 +14,7 @@ repository's own code on this repository's own artefacts. Three checks back it u
 
 | Check | Result |
 |---|---|
-| Tests | **172 passed, 0 failed** |
+| Tests | **189 passed, 0 failed** |
 | `python run.py doctor` | **OK** — config valid, checkpoint loads |
 | Reproduce `outputs/benchmark_results.csv` from source + shipped checkpoint | **36 / 36 rows bit-exact**, with PyTorch and with the NumPy network |
 
@@ -32,8 +32,8 @@ in place. Nothing here is estimated, rounded up, or borrowed from a paper.
 
 **Is:** a working multi-agent deep-RL traffic-signal controller for a 2×2 grid, with a
 safety layer, emergency preemption, two baselines, a four-density benchmark, a live
-browser dashboard that follows every emergency vehicle on both grids, and 172 tests: 66
-Python files (10,625 lines, 6,655 of them in the `atsc` package), 4,928 lines of front-end
+browser dashboard that follows every emergency vehicle on both grids, and 189 tests: 69
+Python files (11,729 lines, 6,835 of them in the `atsc` package), 4,928 lines of front-end
 (HTML, CSS, JavaScript), zero front-end dependencies.
 
 **Is not:** a new RL algorithm. The learner is Double + Dueling DQN with Prioritized
@@ -70,7 +70,7 @@ Built by parsing every file's AST and resolving the import graph, not by reading
 | `run.py` | 227 | CORE | the only entry point: `doctor · demo · train · eval · sim` subcommands (plots are written by `eval` and `train`) | — (CLI) |
 | `asgi.py` | 82 | CORE | the hosted entrypoint: exposes a module-level `app` for `uvicorn asgi:app`, because `build_app()` is a factory | — (the Render start command) |
 | `src/atsc/__init__.py` | 23 | CORE | package marker, version | — |
-| `src/atsc/config.py` | 225 | CORE | loads `config.yaml` into an attribute-access dict; `validate_config` raises friendly errors | 6 modules + tests |
+| `src/atsc/config.py` | 231 | CORE | loads `config.yaml` into an attribute-access dict; `validate_config` raises friendly errors | 6 modules + tests |
 | `src/atsc/logging_utils.py` | 83 | CORE | console + CSV logging | 11 modules |
 | `src/atsc/seeding.py` | 54 | CORE | `seed_everything`, `derive_seed` (sha256 → 32 bits), `make_rng` for independent streams | `mini_backend`, `trainer` |
 | `src/atsc/vehicles.py` | 238 | CORE | the vehicle catalogue: 18 Indian vehicle types, the traffic mix and the three emergency types — cosmetic, drawn from their own random stream | `config`, `mini_backend`, `sumo_backend`, `dashboard/session` |
@@ -80,9 +80,9 @@ Built by parsing every file's AST and resolving the import graph, not by reading
 
 | File | LOC | Status | Purpose | Imported by |
 |---|---:|---|---|---|
-| `sim/backend.py` | 330 | CORE | the `SimBackend` interface, `NetworkTopo`/`build_topology`, `MetricsAccumulator`, approach↔travel maps, `_phase_set` | 10 modules and 7 test files — the most imported file in the package |
-| `sim/mini_backend.py` | 544 | **CORE-alt** | built-in point-queue simulator. **Produced every number in `outputs/`** because SUMO is not installed here. Also offers read-only views for the dashboard (link events, emergency snapshots) that never change the simulation | `sim/__init__`, `dashboard/session`, tests |
-| `sim/sumo_backend.py` | 426 | CORE (primary, unexercised here) | SUMO via libsumo/traci; maps approaches ↔ per-link `G/r` state strings | `sim/__init__`, `run.py` |
+| `sim/backend.py` | 347 | CORE | the `SimBackend` interface (including `emergency_routes`, each emergency vehicle's junctions still ahead), `NetworkTopo`/`build_topology`, `MetricsAccumulator`, approach↔travel maps, `_phase_set` | 10 modules and 7 test files — the most imported file in the package |
+| `sim/mini_backend.py` | 558 | **CORE-alt** | built-in point-queue simulator. **Produced every number in `outputs/`** because SUMO is not installed here. Also offers read-only views for the dashboard (link events, emergency snapshots) that never change the simulation | `sim/__init__`, `dashboard/session`, tests |
+| `sim/sumo_backend.py` | 500 | CORE (primary, unexercised here) | SUMO via libsumo/traci; maps approaches ↔ per-link `G/r` state strings, and each emergency vehicle's remaining edges to the junctions ahead of it | `sim/__init__`, `run.py` |
 | `sim/netgen.py` | 293 | CORE (SUMO path only) | writes `grid.nod.xml`, `grid.edg.xml`, `.rou.xml`, `.sumocfg`; calls `netconvert --tls.guess` | `sim/sumo_backend.py` |
 | `sim/sumo_detect.py` | 144 | CORE | cross-platform SUMO discovery; never raises | `sim/__init__`, `sumo_backend`, `run.py` |
 | `sim/__init__.py` | 85 | CORE | `make_backend()` — the auto/sumo/mini selector | `traffic_env`, `run.py`, `sumo_backend` |
@@ -126,7 +126,7 @@ shipped checkpoint is `create_qnet` in `agents/net.py`, which on this machine re
 | `control/fixed_time.py` | 29 | CORE | baseline 1 — fixed 30 s split, 60 s cycle | `control/__init__` |
 | `control/max_pressure.py` | 51 | CORE | baseline 2 — the throughput-optimal max-pressure rule | `control/__init__` |
 | `control/rl_controller.py` | 64 | CORE | wraps `MultiAgentDQN` for greedy inference; loads the checkpoint | `dashboard/session`, `run.py`, `trainer` |
-| `control/emergency.py` | 65 | CORE | rule-based preemption: forces the serving phase for an emergency vehicle, still through the FSM | `control/__init__` |
+| `control/emergency.py` | 133 | CORE | rule-based preemption, still through the FSM: a green corridor along the emergency vehicle's route for the RL controller, stop-line preemption for fixed-time and max-pressure (`emergency.corridor`) | `control/__init__` |
 | `control/__init__.py` | 25 | CORE | `build_controller(name, …)` factory | tests, `eval/metrics`, dashboard |
 
 ### 2.6 Training, evaluation, dashboard
@@ -136,7 +136,7 @@ shipped checkpoint is `create_qnet` in `agents/net.py`, which on this machine re
 | `train/trainer.py` | 186 | CORE | the episode loop, curriculum, periodic greedy eval, checkpointing, CSV logging | `run.py` |
 | `train/curriculum.py` | 20 | CORE | `scenarios[episode % 4]` — cycles low→medium→high→rush | `train/__init__` |
 | `eval/benchmark.py` | 194 | CORE | the 3×4×3 sweep, `improvement_table`, writes both CSVs + `benchmark_summary.md` | `run.py`, `plots`, `test_benchmark_math` |
-| `eval/metrics.py` | 62 | CORE | `run_controlled_episode()` — one episode under one controller; injects the ambulance at 40 % of the episode | `eval/benchmark` |
+| `eval/metrics.py` | 63 | CORE | `run_controlled_episode()` — one episode under one controller; injects the ambulance at 40 % of the episode | `eval/benchmark` |
 | `eval/plots.py` | 128 | CORE | the four Matplotlib PNGs | `run.py` |
 | `dashboard/session.py` | 811 | CORE | the live race: runs **RL and fixed-time side by side on identical traffic**, the wire protocol (keyframes and deltas), the emergency feed (`ed`, `ev`, `evx`), the automatic slow motion and pause on a result | `server`, `stdlib_server`, `asgi.py` |
 | `dashboard/server.py` | 355 | CORE | FastAPI + WebSocket broadcast every `tick_ms`, the JSON API and `/healthz`; falls back if FastAPI is missing | `run.py`, `asgi.py`, `stdlib_server` |
@@ -145,13 +145,15 @@ shipped checkpoint is `create_qnet` in `agents/net.py`, which on this machine re
 | `static/js/*.js` (8 modules) | 4,059 | CORE | the page: `main` (the frame loop), `transport` (WebSocket + polling), `model` (frames → state, positions between frames), `renderer` (the canvas maps), `sprites` (18 vehicle drawings), `charts`, `tracker` (the emergency tracker), `ui` | — (browser) |
 | `static/index.html` · `styles.css` · `sw.js` | 245 · 522 · 102 | CORE | the single page, its styling, the service worker for the "Waking up the server…" screen | — (browser) |
 
-### 2.7 Tests (172 cases in 16 files, all passing)
+### 2.7 Tests (189 cases in 18 files, all passing)
 
 | File | Cases | What it actually asserts |
 |---|---:|---|
 | `tests/test_phases_safety.py` | 5 | the headline safety claim — over thousands of random phase requests, no two conflicting approaches are ever green together; min/max green respected |
 | `tests/test_replay.py` | 5 | sum-tree priorities, PER add/sample/update, the uniform buffer, and that the NumPy Q-net learns a fixed target and loads portable weights |
 | `tests/test_controllers.py` | 5 | fixed-time cycles its phases; max-pressure prefers the busier approach and beats fixed-time at high demand; preemption serves the emergency approach |
+| `tests/test_emergency_corridor.py` | 14 | the RL controller gets the green corridor and the baselines stop-line preemption; a corridor requests every junction still ahead from dispatch and releases each once crossed; stop-line preemption holds only the junction the vehicle waits at; the closer vehicle wins a shared junction; both simulators report each vehicle's junctions ahead (SUMO's against a fake TraCI connection); the config switch is validated |
+| `tests/test_emergency_eval.py` | 3 | `tools/emergency_eval.py`: every dispatch is matched and gets through, its travel time = waiting time + the drive along the link, and the table and charts come out |
 | `tests/test_env.py` | 4 | observation is 23-D and finite; `step()` advances 5 s; agent set matches the topology; determinism |
 | `tests/test_reward.py` | 3 | reward sign and the switch penalty; the emergency bonus term |
 | `tests/test_benchmark_math.py` | 4 | `improvement_table` arithmetic and grid/neighbour topology |
@@ -168,11 +170,13 @@ shipped checkpoint is `create_qnet` in `agents/net.py`, which on this machine re
 | `tests/conftest.py` · `tests/dashboard_model.py` | — | the session-scoped `cfg` fixture; a Python mirror of the browser's frame handling |
 
 **Coverage gaps — know these before a panellist finds them.** Nothing tests: the SUMO backend
-and `netgen` (they cannot run without SUMO installed), the Double-DQN target computation in
+beyond its emergency-route mapping (tested against a fake TraCI connection) and `netgen` (they
+cannot run without SUMO installed), the Double-DQN target computation in
 isolation, an end-to-end training run, `agents/dqn.py` outside QMIX, or the claim *"RL beats
 fixed-time"*. The last one is covered by the benchmark instead of by a test — CI reruns the
-36 runs on every push and fails if the CSV changes by a byte — which is defensible (it is a
-36-run experiment, not a unit assertion), but say it that way.
+36 runs on every push and fails if the CSV changes by a byte, and reruns the emergency
+evaluation, which fails if any emergency type is slower under RL — which is defensible (they
+are experiments, not unit assertions), but say it that way.
 
 ### 2.8 Non-code files
 
@@ -347,41 +351,41 @@ Means over seeds 0–2, 1800 s episodes, 30 s warm-up excluded, built-in backend
 
 | Metric | Scenario | Fixed-time | Max-pressure | **RL** | **RL vs fixed** |
 |---|---|---:|---:|---:|---:|
-| **Avg wait (s)** | low | 26.29 | 19.22 | 22.31 | **−15.1 %** |
-| | medium | 34.33 | 22.52 | 25.24 | **−26.5 %** |
-| | high | 68.66 | 35.56 | 35.17 | **−48.8 %** |
-| | rush | 113.00 | 50.54 | 43.89 | **−61.2 %** |
-| **Avg queue (veh/int.)** | low | 2.97 | 2.16 | 2.51 | −15.3 % |
+| **Avg wait (s)** | low | 26.29 | 19.22 | 22.02 | **−16.2 %** |
+| | medium | 34.33 | 22.52 | 24.85 | **−27.6 %** |
+| | high | 68.66 | 35.56 | 35.56 | **−48.2 %** |
+| | rush | 113.00 | 50.54 | 43.93 | **−61.1 %** |
+| **Avg queue (veh/int.)** | low | 2.97 | 2.16 | 2.48 | −16.4 % |
 | | medium | 6.79 | 4.44 | 4.98 | −26.6 % |
-| | high | 20.07 | 10.37 | 10.25 | −48.9 % |
-| | rush | 36.54 | 16.31 | 14.14 | −61.3 % |
-| **Throughput (veh)** | low | 808.0 | 808.7 | 807.0 | −0.1 % |
-| | medium | 1399.0 | 1400.3 | 1399.7 | +0.0 % |
-| | high | 2002.0 | 2051.0 | 2057.7 | **+2.8 %** |
-| | rush | 2093.3 | 2246.0 | 2253.3 | **+7.6 %** |
-| **Moving-fraction speed (m/s)** | low | 5.25 | 6.39 | 5.79 | +10.1 % |
-| | medium | 4.44 | 5.79 | 5.38 | +21.0 % |
-| | high | 2.62 | 4.27 | 4.31 | +64.8 % |
-| | rush | 1.76 | 3.34 | 3.67 | **+108.1 %** |
-| **Fuel proxy (ml)** | low | 17,982 | 16,254 | 16,993 | −5.5 % |
-| | medium | 34,682 | 29,590 | 30,757 | −11.3 % |
-| | high | 72,164 | 51,676 | 51,424 | −28.7 % |
-| | rush | 109,424 | 67,559 | 62,898 | **−42.5 %** |
-| **CO₂ proxy (g)** | low → rush | 41,539 → 252,769 | 37,547 → 156,060 | 39,253 → 145,295 | −5.5 % → **−42.5 %** |
-| **Emergency clearance (s)** | low | 26.0 | 26.3 | 20.0 | −23.1 % (1.30×) |
-| | medium | 28.7 | 36.7 | 18.3 | −36.0 % (1.56×) |
-| | high | 80.0 | 42.0 | 41.7 | −47.9 % (1.92×) |
-| | rush | 113.7 | 39.3 | 32.7 | **−71.3 % (3.48×)** |
+| | high | 20.07 | 10.37 | 10.37 | −48.4 % |
+| | rush | 36.54 | 16.31 | 14.15 | −61.3 % |
+| **Throughput (veh)** | low | 808.0 | 808.7 | 806.7 | −0.2 % |
+| | medium | 1399.0 | 1400.3 | 1398.3 | −0.0 % |
+| | high | 2002.0 | 2051.0 | 2056.7 | **+2.7 %** |
+| | rush | 2093.3 | 2246.0 | 2254.7 | **+7.7 %** |
+| **Moving-fraction speed (m/s)** | low | 5.25 | 6.39 | 5.81 | +10.5 % |
+| | medium | 4.44 | 5.79 | 5.42 | +22.0 % |
+| | high | 2.62 | 4.27 | 4.27 | +63.3 % |
+| | rush | 1.76 | 3.34 | 3.66 | **+107.9 %** |
+| **Fuel proxy (ml)** | low | 17,982 | 16,254 | 16,921 | −5.9 % |
+| | medium | 34,682 | 29,590 | 30,573 | −11.8 % |
+| | high | 72,164 | 51,676 | 51,679 | −28.4 % |
+| | rush | 109,424 | 67,559 | 62,945 | **−42.5 %** |
+| **CO₂ proxy (g)** | low → rush | 41,539 → 252,769 | 37,547 → 156,060 | 39,088 → 145,402 | −5.9 % → **−42.5 %** |
+| **Emergency clearance (s)** | low | 26.0 | 26.3 | 18.7 | −28.2 % (1.39×) |
+| | medium | 28.7 | 36.7 | 16.3 | −43.0 % (1.76×) |
+| | high | 80.0 | 42.0 | 31.7 | −60.4 % (2.53×) |
+| | rush | 113.7 | 39.3 | 25.3 | **−77.7 % (4.49×)** |
 
 ### 6.2 Three things in that table that need a prepared answer
 
-**(a) Throughput barely moves (−0.1 %, 0.0 %, +2.8 %, +7.6 %) while the deck promised
+**(a) Throughput barely moves (−0.2 %, 0.0 %, +2.7 %, +7.7 %) while the deck promised
 +35–45 %.** This is the most likely gotcha in the whole viva, and the honest answer is strong:
 
 > Below saturation, throughput is set by **demand**, not by the signal. Every vehicle that
 > enters clears under both controllers within the episode, so the counts must match — what
 > differs is how long each vehicle waited. Throughput can only improve when capacity actually
-> binds, and that is exactly where we see it: +2.8 % at high and **+7.6 % at rush**. The
+> binds, and that is exactly where we see it: +2.7 % at high and **+7.7 % at rush**. The
 > +35–45 % on the slide is a pre-implementation *expected* figure; the measured result taught
 > us that waiting time, not throughput, is the right headline metric below saturation.
 
@@ -392,14 +396,14 @@ rush figure "a 108 % speed increase" — say "roughly twice as many vehicles in 
 instant". A microscopic per-vehicle speed distribution **cannot be obtained from this
 project's built-in backend**; SUMO would give it.
 
-**(c) Max-pressure beats RL at low and medium density.** 19.22 vs 22.31 s (low) and
-22.52 vs 25.24 s (medium). Do not hide it — it is evidence of an honest baseline:
+**(c) Max-pressure beats RL at low and medium density.** 19.22 vs 22.02 s (low) and
+22.52 vs 24.85 s (medium). Do not hide it — it is evidence of an honest baseline:
 
 > Max-pressure is provably throughput-optimal and near-optimal for light demand, where the
 > right move is simply "serve whoever is waiting". The learned policy has to discover that,
 > and it pays a small switch-penalty tax for doing so. Where the problem is genuinely hard —
-> high and rush, with coordination and spillover — RL matches it (35.17 vs 35.56 s) and then
-> beats it clearly (43.89 vs 50.54 s, a 13 % further reduction). Beating fixed-time was the
+> high and rush, with coordination and spillover — RL matches it (35.56 s each) and then
+> beats it clearly (43.93 vs 50.54 s, a 13 % further reduction). Beating fixed-time was the
 > objective; getting within noise of max-pressure at low load and past it under congestion is
 > the result.
 
@@ -409,13 +413,13 @@ Seed-to-seed spread in average wait (max − min across seeds 0–2):
 
 | Scenario | Fixed-time | Max-pressure | **RL** |
 |---|---:|---:|---:|
-| low | 0.94 s | 1.44 s | **0.57 s** |
-| medium | 1.08 s | 2.75 s | 2.17 s |
-| high | 14.53 s | 3.73 s | **2.35 s** |
-| rush | **30.02 s** | 15.18 s | **2.69 s** |
+| low | 0.94 s | 1.44 s | **0.52 s** |
+| medium | 1.08 s | 2.75 s | 1.94 s |
+| high | 14.53 s | 3.73 s | **2.81 s** |
+| rush | **30.02 s** | 15.18 s | **4.08 s** |
 
-At rush the RL controller is **~11× more consistent** than fixed-time (2.69 s vs 30.02 s) and
-~5.6× more consistent than max-pressure. That is arguably a better selling point than the mean
+At rush the RL controller is **~7× more consistent** than fixed-time (4.08 s vs 30.02 s) and
+~3.7× more consistent than max-pressure. That is arguably a better selling point than the mean
 itself: a fixed-time junction under heavy load is a lottery depending on how the arrivals
 happen to land, while the adaptive controller lands in the same place every time. Predictability
 is what a traffic authority actually buys.
@@ -425,8 +429,9 @@ is what a traffic authority actually buys.
 | Figure | What it plots | What to say | What to *not* claim |
 |---|---|---|---|
 | `comparison_kpis.png` | grouped bars: wait, queue, throughput × 4 densities × 3 controllers | "the wait and queue bars separate more as load rises; the throughput bars are almost equal by design, because demand is the binding constraint below saturation" | that throughput improved much |
-| `rl_improvement.png` | RL % improvement vs fixed-time, with a shaded 40–50 % band | "the band is the **proposal's target**, hardcoded in `plots.py:80` — not a measured value. We cross it at high (48.8 %) and clear it at rush (61.2 %)" | that the band is a result |
-| `emergency_clearance.png` | clearance time by controller × density | "1.30× at low up to **3.48× at rush** — preemption matters most when there is something to preempt" | "10× faster" — it is not |
+| `rl_improvement.png` | RL % improvement vs fixed-time, with a shaded 40–50 % band | "the band is the **proposal's target**, hardcoded in `plots.py:80` — not a measured value. We cross it at high (48.2 %) and clear it at rush (61.1 %)" | that the band is a result |
+| `emergency_clearance.png` | clearance time by controller × density | "1.39× at low up to **4.49× at rush** — preemption matters most when there is something to preempt" | "10× faster" — it is not |
+| `emergency/emergency_<type>.png` | one chart per emergency type: travel time, waiting time, stops and time to clear a junction, RL vs fixed-time, per density and pooled | "every type is faster under RL at every density; the police car is the close one" | that the police car's lead is large — it is 0.5 s at rush |
 | `training_curve.png` | avg wait vs episode | "the curve is **saw-toothed because the curriculum cycles low→medium→high→rush every four episodes** — the four interleaved bands each trend down. Compare like scenarios, not adjacent points" | that a spike is instability |
 
 The training curve's shape is a question waiting to be asked. The per-scenario trend is the
@@ -441,14 +446,14 @@ answer. Have the right one ready, with the file that proves it.
 
 | # | Topic | What is true | Where to point |
 |---|---|---|---|
-| 1 | The average improvement | **37.9 %** mean over the four densities (61 % at rush), not "about 41 %" | `outputs/benchmark_summary.md` |
-| 2 | The 40–50 % target | reached in the congested regimes (49 %, 61 %), with a 38 % overall mean | the same file |
+| 1 | The average improvement | **38.3 %** mean over the four densities (61 % at rush), not "about 41 %" | `outputs/benchmark_summary.md` |
+| 2 | The 40–50 % target | reached in the congested regimes (48 %, 61 %), with a 38 % overall mean | the same file |
 | 3 | Seeds | exactly **3** (0, 1, 2) | `config.yaml → eval.seeds`, stamped into the summary |
 | 4 | Charts on the page | drawn by hand on a canvas — no Chart.js, no CDN request anywhere | `static/js/charts.js` |
 | 5 | "Show me your DQN network" | `create_qnet` in `agents/net.py`; `agents/dqn.py` runs only if QMIX is switched on | `agents/net.py`, `agents/dqn.py` docstring |
 | 6 | SUMO signal programs | `netgen.py` lets `netconvert --tls.guess` build them, and the controller overrides the state every step | `sim/netgen.py` docstring |
 | 7 | Amber on SUMO | `_apply_states` writes only `G` and `r`; during clearance the FSM sends an empty green set, so SUMO shows all-red | `sim/sumo_backend.py` |
-| 8 | The emergency bonus on SUMO | `pop_emergency_cleared()` returns 0 there, so `w_emergency` never fires on SUMO | `sim/sumo_backend.py` docstring |
+| 8 | The emergency bonus on SUMO | `pop_emergency_cleared()` returns 0 there, so `w_emergency` never fires on SUMO — nor in training on the built-in backend, which never sends an emergency vehicle | `sim/sumo_backend.py` docstring, `train/trainer.py` |
 | 9 | Rush hour | *sustained* heavy demand (`arrival_scale: 1.00`, `time_varying: false`), not a time-varying surge | `config.yaml → scenarios.rush` |
 | 10 | Training length | **112** episodes, as `config.yaml` says | `outputs/logs/train.csv` |
 | 11 | Which simulator produced the numbers | the built-in point-queue backend; SUMO is implemented but not measured | `outputs/benchmark_results.csv`, README |
@@ -493,10 +498,12 @@ Ordered by how likely they are to be attacked. Each has the concession *and* the
    33 seconds, so length was never the binding constraint — problem size was."*
 9. **Emergency preemption is rule-based, not learned.** → *"On purpose. Emergency response is a
    safety function; you do not want it to be a learned probability. The RL policy handles the
-   surrounding traffic, the rule handles the ambulance, and the reward pays for clearing it so
-   the policy learns to cooperate."*
-10. **`w_emergency` never fires on the SUMO backend** (§7 item 9), so an emergency-aware policy
-    trained on SUMO would lose that signal.
+   surrounding traffic and the rule handles the ambulance. The reward has a bonus for clearing
+   one, but training never sends an emergency vehicle, so it is the rule — a green corridor on
+   the RL grid — that clears the way, not the policy."*
+10. **`w_emergency` never fires in training.** Training never sends an emergency vehicle (and on
+    the SUMO backend `pop_emergency_cleared()` returns 0 anyway, §7 item 8), so the bonus and the
+    four emergency flags are inert in the shipped policy.
 11. **The dashboard has no authentication.** Locally it binds `127.0.0.1`, so the exposure is
     local. The hosted copy (see `docs/DEPLOYMENT.md`) is public and still unauthenticated —
     that is a deliberate choice for a demo, not an oversight: there is no account, no upload,
@@ -643,11 +650,11 @@ technical depth plus the follow-up they will ask). ★ marks the ones most likel
 | # | Question | Say this | If pushed |
 |---|---|---|---|
 | 1 ★ | Why reinforcement learning for traffic signals? | Signal control is a sequential decision problem where each choice changes the state you face next — that is exactly what RL is for. A timer ignores the queue; a rule reacts to it; RL learns a policy that anticipates consequences. | Formally it is a Markov decision process: the queue state evolves from your green choices, and the objective (cumulative delay) is a sum over time, not a single-step cost. Greedy rules optimise the current step; the discounted return optimises the trajectory. → *"So is your policy optimal?"* No — DQN gives no optimality guarantee; it beat both baselines empirically, which is the claim I make. |
-| 2 | Why not just optimise the fixed timings offline? | That is Webster's method, and it is genuinely good for *stationary, known* demand. It cannot respond to the asymmetry and randomness of a real hour. | Webster minimises expected delay for a fixed cycle given average flows; the moment flows differ from the average, its allocation is wrong. Our fixed-time baseline is essentially that: 30 s each way. RL cuts its wait 15–61 % on the same traffic. |
+| 2 | Why not just optimise the fixed timings offline? | That is Webster's method, and it is genuinely good for *stationary, known* demand. It cannot respond to the asymmetry and randomness of a real hour. | Webster minimises expected delay for a fixed cycle given average flows; the moment flows differ from the average, its allocation is wrong. Our fixed-time baseline is essentially that: 30 s each way. RL cuts its wait 16–61 % on the same traffic. |
 | 3 | Why a grid and not one junction? | Because coordination is the interesting part. One junction cannot produce a green wave; four can. | The neighbour features in the observation (pressures and phases of adjacent junctions) only mean something with neighbours. With `arterial_boost: 2.2` the E–W corridor carries 2.2× the side-street demand, so there is a real corridor to coordinate. |
 | 4 | Why is 2×2 enough? | It is the smallest network that has real coordination structure, and it keeps the demo reproducible in seconds. | Each junction has at least one neighbour on the arterial and one on a cross street, so every term in the observation is exercised. `grid_rows: 3` works and needs only a retrain; shared parameters mean the network size does not change. |
 | 5 | What is your actual contribution? | Integration and rigour, not a new algorithm: multi-agent neighbour-aware coordination, a safety layer that makes unsafe states impossible, preemption, two honest baselines across four densities on identical traffic, and a build that runs with no external dependencies. | Every learning component is published work (DQN 2015, Double 2016, Dueling 2016, PER 2016). What is ours is the system: the FSM/agent separation, the observation design, the dependency-optional architecture, and a results table that regenerates bit-exactly. |
-| 6 | Who benefits, in what units? | Drivers: 15–61 % less waiting. Emergency services: 1.3–3.5× faster corridor clearance. Environment: 5.5–42.5 % less fuel by our proxy. | All relative to fixed-time on identical traffic. The fuel and CO₂ figures are proxies computed from halted-vs-moving counts, so they are comparative, not measured emissions. |
+| 6 | Who benefits, in what units? | Drivers: 16–61 % less waiting. Emergency services: 1.4–4.5× faster corridor clearance for the benchmark's ambulance, and every emergency type faster on average. Environment: 5.9–42.5 % less fuel by our proxy. | All relative to fixed-time on identical traffic. The fuel and CO₂ figures are proxies computed from halted-vs-moving counts, so they are comparative, not measured emissions. |
 | 7 | Why should a city trust a neural network with a traffic light? | It never gets to control the light. It requests a phase; a finite-state machine decides whether that request is legal. | Deployment would run the policy in shadow mode first (log what it would have done, compare with the live plan), then advisory mode behind the certified controller. The architecture already separates optimisation from safety. |
 | 8 | What is the baseline you are trying to beat, honestly? | Both of them. Fixed-time is the deployed reality; max-pressure is the strong academic reference. | Choosing only fixed-time would have been the easy path. Max-pressure is provably throughput-optimal, and it beats us at low density — reporting that is the point. |
 | 9 | Is this deployable today? | No. It is a validated simulation study with a clear deployment path. | The missing pieces are real sensing with failure handling, calibration to real counts, certification, and a shadow-mode trial (§10). |
@@ -748,19 +755,19 @@ technical depth plus the follow-up they will ask). ★ marks the ones most likel
 | 79 ★ | What does max_green guarantee? | That no green runs longer than 60 s: the FSM starts a change regardless of the policy. It does not, on its own, guarantee the side street gets served. | The FSM accepts a new request during amber and all-red, so the policy can cancel the change and return to the same phase; with the shipped policy the longest side-street wait reached ~113 s. A one-line fix (ignore requests during clearance) would make it a real guarantee, at the cost of re-running every benchmark. |
 | 80 | What if the neural network returns NaN? | The FSM still only accepts a valid phase index, and `argmax` of NaNs still returns an index in range, so the light stays legal — it would just make a poor choice. | The observation builder is unit-tested to return finite values. A production system would add an explicit sanity gate and a fallback to a fixed plan on any anomaly; that is not implemented here. |
 | 81 | Is the safety layer learned or hardcoded? | Hardcoded, deliberately. Safety you can prove beats safety you hope was learned. | It is the clean separation the project is built around: the environment owns safety, the agent owns optimisation. It is also what would let a certified controller host the policy as an advisory layer. |
-| 82 | Does the FSM ever ignore an emergency preemption request? | It honours the requested phase but still inserts yellow and all-red on the way. It will not slam a green on. | So preemption is fast but never unsafe. That is why clearance improves by 1.3–3.5× rather than instantly. |
+| 82 | Does the FSM ever ignore an emergency preemption request? | It honours the requested phase but still inserts yellow and all-red on the way. It will not slam a green on. | So preemption is fast but never unsafe. That is why clearance improves by 1.4–4.5× rather than instantly. |
 | 83 | Where does the 5 s clearance cost show up in the numbers? | In the switch penalty and in throughput. Every phase change spends 5 s where nothing moves. | With `max_green 60 s`, worst case you lose about 8 % of capacity to clearance. It is also why an unpenalised switching policy performs badly — the loss compounds every 5 s. |
 
 ### G. Emergency-vehicle preemption (8)
 
 | # | Question | Say this | If pushed |
 |---|---|---|---|
-| 84 ★ | How does emergency preemption work? | `control/emergency.py`, 63 lines. Every control step it scans all four approaches of every junction; if an emergency vehicle is present it finds the phase that serves that approach and *requests* it on that junction's FSM. | It is a deliberately rule-based override, matching how real systems (Opticom-style) sit on top of the normal controller rather than replacing it. It wraps *any* base controller — RL, fixed-time, max-pressure. |
-| 85 ★ | Is preemption learned or scripted? | Scripted, and I would defend that choice. You do not want an ambulance's right of way to depend on a converged neural network. | The learned part is complementary: `w_emergency = 5.0` rewards the agent for clearing emergencies, so the policy is emergency-aware even before the override fires. Two mechanisms, one hard and one soft. |
-| 86 ★★ | Then the emergency improvement is just your override, not the RL. | No — and this is the important detail. **All three controllers receive the identical override.** `run_controlled_episode` attaches the `EmergencyController` regardless of which controller is running, and the benchmark never disables it. | So the 1.30×/1.56×/1.92×/**3.48×** clearance speedups are what remains *after* equalising preemption. The gap comes from the RL controller having left the corridor less congested for the ambulance to drive into, which is why the advantage grows with density. |
-| 87 | How is clearance time measured? | Total time in network for the emergency vehicle: injected at t = 720 s (40 % of the 1800 s episode), timed until it exits the far side of the grid. | It enters at `J1_0` from the west and runs straight east across the middle row — two junctions, one 200 m link, no turns, speed factor 1.3. The free-flow floor is about 11 s of transit plus discharge, so RL's 20 s at low density is close to unimprovable; fixed-time's 113.7 s at rush is almost all queueing. |
-| 88 ★ | How many emergency vehicles per episode? | Exactly one. So each cell of the clearance table is **three samples** (one per seed), not a distribution. | That is the honest weakness of that metric, and I would flag it before an examiner does. The effect size at rush (113.7 → 32.7 s) is far larger than the seed spread, so the direction is safe; a tighter claim would need many injections per episode. |
-| 89 | How is the emergency detected? | `backend.emergency_present(tls_id, approach)` — the simulator is asked directly. | It is an oracle, and I will say so. A real deployment uses transponder, GPS/CAD feed, or siren detection, all of which have false negatives and range limits. Modelling detection latency is listed as a Level-2 improvement. |
+| 84 ★ | How does emergency preemption work? | `control/emergency.py`, 133 lines, two modes. On the RL grid it clears a green corridor: every control step it asks the simulator for each emergency vehicle's remaining route (`emergency_routes()`) and *requests* the serving phase on the FSM of every junction still ahead of it, from the moment it is sent until it has crossed. On the fixed-time grid it pre-empts at the stop line: it scans all four approaches of every junction and requests the serving phase where an emergency vehicle is waiting. | It is a deliberately rule-based override, matching how real systems (Opticom-style) sit on top of the normal controller rather than replacing it. It wraps *any* base controller; `emergency.corridor` in `config.yaml` lists the controllers that clear a corridor (by default only `rl`). Where two vehicles want one junction, the closer one goes first. |
+| 85 ★ | Is preemption learned or scripted? | Scripted, and I would defend that choice. You do not want an ambulance's right of way to depend on a converged neural network. | And there is no learned part hiding behind it: `w_emergency = 5.0` is in the reward and the observation has four emergency flags, but training never sends an emergency vehicle, so neither changes what the shipped policy does. Everything an emergency vehicle gets comes from the override. |
+| 86 ★★ | Then the emergency improvement is just your override, not the RL. | Partly, and I can split it exactly. Every controller gets an override, but not the same one: the RL grid clears a green corridor, fixed-time and max-pressure pre-empt at the stop line. With the *same* stop-line override on both grids the ambulance and the fire engine are still about 2× faster under RL (`tools/emergency_eval.py`: 61.7 → 30.6 s for the ambulance, pooled), because the agents leave the arterial less congested to drive into; the corridor takes that to 24.5 s. | The police car is the honest exception: it runs down the side street, where the agents give less green than fixed-time's 50/50 split, so with identical stop-line preemption it is **24 % slower** under RL, and with a corridor on both grids still 12 % slower. Its 8.9 % lead comes from the corridor being an RL-system capability — a networked controller can clear the junctions ahead, a stand-alone fixed timer cannot — and at rush it is only 0.5 s. Say that before you are asked — and show it: `tools/emergency_eval.py --config` on a copy of `config.yaml` with `emergency.corridor: []` (or `[rl, fixed_time]`) reruns the comparison with identical preemption. |
+| 87 | How is clearance time measured? | Total time in network for the emergency vehicle: injected at t = 720 s (40 % of the 1800 s episode), timed until it exits the far side of the grid. | It enters at `J1_0` from the west and runs straight east across the middle row — two junctions, one 200 m link, no turns, speed factor 1.3. The free-flow floor is 14 s (12 s on the link plus 1 s at each stop line), so RL's 18.7 s at low density is close to unimprovable; fixed-time's 113.7 s at rush is almost all queueing. |
+| 88 ★ | How many emergency vehicles per episode? | In the benchmark, exactly one. So each cell of the clearance table is **three samples** (one per seed), not a distribution. | That is why `tools/emergency_eval.py` exists: for every type it dispatches at 25 moments of each of 40 episodes (four densities × seeds 0–9), each into its own copy of the running simulation, under both controllers — 1,000 matched dispatches per type, with win rates and per-seed confidence intervals in `outputs/emergency/emergency_results.md`. The benchmark's effect at rush (113.7 → 25.3 s) is far larger than the seed spread. |
+| 89 | How is the emergency detected? | The simulator is asked directly: `backend.emergency_routes()` gives the RL grid each vehicle's remaining route from the moment it is sent; `backend.emergency_present(tls_id, approach)` tells the fixed-time grid that one is waiting at a stop line. | Both are oracles, and I will say so. A real deployment uses transponder, GPS/CAD feed, or siren detection, all of which have false negatives and range limits. Modelling detection latency is listed as a Level-2 improvement. |
 | 90 | Can preemption make the light unsafe? | No. It calls `fsm.request(phase)`, exactly the same entry point the agent uses. Yellow and all-red are still inserted. | That is why clearance improves by a factor rather than instantly — safety costs the ambulance up to 5 s per junction, and I would not trade that away. |
 | 91 | Does the emergency bonus work on the SUMO backend? | No. `SumoBackend.pop_emergency_cleared()` returns 0 — SUMO's arrival list is not filtered by vtype — so `w_emergency` only fires on the built-in backend. | The override itself works on both; only the reward term is backend-specific. Since all shipped training and evaluation ran on the built-in backend, no reported number is affected — but it is a real gap and it is documented in the module docstring rather than hidden. |
 
@@ -769,7 +776,7 @@ technical depth plus the follow-up they will ask). ★ marks the ones most likel
 | # | Question | Say this | If pushed |
 |---|---|---|---|
 | 92 ★ | What are you comparing against? | Two baselines. Fixed-time: a standard 30 s + 30 s cycle, 60 s total, no sensing. Max-pressure: a published adaptive algorithm that each step serves the phase with the greatest queue pressure. | Comparing only against fixed-time would be a soft target — any adaptive method beats a clock. Max-pressure is the honest bar because it is provably throughput-optimal under its own assumptions. |
-| 93 ★★ | Max-pressure beats your RL at low and medium density. Explain. | It does: 19.22 s vs 22.31 s at low, 22.52 s vs 25.24 s at medium. Max-pressure is greedy and near-optimal when there is slack, and it pays no switching penalty. Our reward charges 0.20 per switch and the policy is trained across all four densities, so it is deliberately less twitchy. | The ordering reverses where it matters: 35.56 vs 35.17 at high, and 50.54 vs **43.89** at rush — a 13 % win over max-pressure when the network is saturated, which is the regime the project targets. Max-pressure also needs the full queue vector every step and has no notion of clearance cost or emergencies. I would rather report the reversal than hide the two cells I lose. |
+| 93 ★★ | Max-pressure beats your RL at low and medium density. Explain. | It does: 19.22 s vs 22.02 s at low, 22.52 s vs 24.85 s at medium. Max-pressure is greedy and near-optimal when there is slack, and it pays no switching penalty. Our reward charges 0.20 per switch and the policy is trained across all four densities, so it is deliberately less twitchy. | The ordering reverses where it matters: a dead heat at high (35.56 s each), and 50.54 vs **43.93** at rush — a 13 % win over max-pressure when the network is saturated, which is the regime the project targets. Max-pressure also needs the full queue vector every step and has no notion of clearance cost or emergencies. I would rather report the reversal than hide the two cells I lose. |
 | 94 | Is max-pressure a strong implementation or a strawman? | It is the standard rule: for each phase compute upstream minus downstream queue, take the max, respect the same min/max green and clearance FSM the RL agent obeys. `control/max_pressure.py`. | It runs on the identical environment, identical seeds, identical safety constraints, and it gets the same emergency override. If anything it is favoured, because it reads exact queues with no sensing noise. |
 | 95 ★ | How do you know the comparison is fair? | Same seed, same environment object, same arrival sequence, same safety FSM, same preemption. Only the `act()` implementation differs. | Seeding is derived per stream via `derive_seed(base, *tags)`, so controller A and controller B on seed 0 face a bit-identical demand realisation. Rerunning all 36 rows regenerates the CSV byte for byte, and CI checks that on every push. |
 | 96 | Why not compare against SCATS or SCOOT? | They are proprietary commercial systems; there is no reference implementation I could run inside this project, and reproducing one from the literature would be a project in itself. | I would not claim a comparison I did not run. Max-pressure is the recognised research baseline for this task and it is the one I implemented and measured. |
@@ -798,18 +805,18 @@ technical depth plus the follow-up they will ask). ★ marks the ones most likel
 | 109 ★ | Describe your evaluation protocol. | 3 controllers × 4 densities × 3 seeds = **36 episodes**, each 1800 simulated seconds, 30 s warm-up discarded, one emergency vehicle injected at t = 720 s. Every row is in `outputs/benchmark_results.csv`. | Identical seeds across controllers, so each controller faces a bit-identical arrival sequence. Rerunning all 36 rows from the shipped code and checkpoint regenerates the CSV byte for byte; CI checks that on every push. |
 | 110 ★ | Only 3 seeds? | Yes, and I will not oversell it. Three seeds gives a direction, not a confidence interval. | What defends the headline is effect size versus spread: at rush, RL's advantage is 69 s while the *entire* seed range is 2.69 s for RL and 30.02 s for fixed-time. At low density, where my margin is 4 s, three seeds is genuinely too few and I would say so. Ten seeds costs about a minute of compute — it is on the improvement list for exactly that reason. |
 | 111 ★ | How is average waiting time defined? | Total accumulated stopped time divided by the number of vehicles counted — and vehicles **still in the network at episode end are folded in** via `record_present_wait`. | That last part matters: if I only counted completed trips, a controller could look good by stranding its worst vehicles forever. Including them makes the metric un-gameable in that direction. It is per vehicle, not per intersection. |
-| 112 ★★ | Your deck claims +35–45 % throughput. Your data shows +0.1 % to +7.6 %. | The deck target was not met and I would correct it rather than defend it. Measured throughput change versus fixed-time is −0.1 % (low), +0.0 % (medium), +2.8 % (high), +7.6 % (rush). | The reason is structural: throughput is bounded by *demand*, and demand is exogenous — the same arrival process feeds every controller. In under-saturated conditions every controller eventually discharges nearly every vehicle, so throughput cannot separate them; it only moves once queues start spilling, which is why the gain appears at high and rush. Waiting time and queue length are the metrics with headroom, and there RL wins by 48.8 % and 61.2 %. |
+| 112 ★★ | Your deck claims +35–45 % throughput. Your data shows −0.2 % to +7.7 %. | The deck target was not met and I would correct it rather than defend it. Measured throughput change versus fixed-time is −0.2 % (low), 0.0 % (medium), +2.7 % (high), +7.7 % (rush). | The reason is structural: throughput is bounded by *demand*, and demand is exogenous — the same arrival process feeds every controller. In under-saturated conditions every controller eventually discharges nearly every vehicle, so throughput cannot separate them; it only moves once queues start spilling, which is why the gain appears at high and rush. Waiting time and queue length are the metrics with headroom, and there RL wins by 48.2 % and 61.1 %. |
 | 113 ★★ | You report a 108 % improvement in "average speed". That cannot be real. | Correct to be suspicious. `avg_speed` in this project is **not a measured speed** — it is `free_speed × (moving vehicles / vehicles present)`, i.e. a moving-fraction proxy scaled to m/s. | So a doubling means the fraction of vehicles in motion roughly doubled, which is a real and meaningful statement about congestion — but it is not a speedometer reading, and calling it "average speed" is the least defensible label in my metric set. The point-queue backend has no continuous speed to average, so a true figure would require the SUMO backend. I would rename it `moving_fraction` in the next revision. |
 | 114 ★ | Are your fuel and CO₂ numbers real? | No — they are a linear proxy: 0.30 ml/s per halted vehicle plus 0.90 ml/s per moving vehicle, and CO₂ = fuel × 2.31 g/ml for petrol. | Because it is a fixed linear function of the halted and moving counts, it carries **no independent information** beyond the queue metrics — the −42.5 % at rush is the queue result restated in different units. I include it because reduced idling is the real-world justification for the project, but I would never present it as an emissions measurement. SUMO's HBEFA emission model is the credible route. |
 | 115 ★ | What is your single strongest result? | Not the average — the *consistency*. Seed-to-seed spread in average waiting time at rush: fixed-time 30.02 s, RL 2.69 s. About **11× more consistent** under saturation. | A traffic authority cares as much about predictability as about the mean, and a fixed plan is fragile precisely when the network is loaded. That result also arrives free — it is a property of adaptivity, not something I tuned for. |
-| 116 | Why does the improvement grow with density? | Because a fixed plan is only correct for the demand it was tuned for. At low density there is enough slack that any reasonable plan works; at saturation, green time allocated to an empty approach is capacity you can never recover. | Numerically: −15.1 % at low, −26.5 % medium, −48.8 % high, −61.2 % rush. That monotone trend is the most convincing shape in the whole results set, because it matches the theory rather than just looking good. |
+| 116 | Why does the improvement grow with density? | Because a fixed plan is only correct for the demand it was tuned for. At low density there is enough slack that any reasonable plan works; at saturation, green time allocated to an empty approach is capacity you can never recover. | Numerically: −16.2 % at low, −27.6 % medium, −48.2 % high, −61.1 % rush. That monotone trend is the most convincing shape in the whole results set, because it matches the theory rather than just looking good. |
 | 117 | Which config keys govern the evaluation? | `eval.controllers`, `eval.scenarios`, `eval.seeds: [0,1,2]`, `eval.inject_emergency: true`, and the episode length. | One precision point I would volunteer: the environment's episode length actually comes from `sim.episode_seconds`, while `eval.episode_seconds` is consumed by the SUMO route generator and the summary header. Both are 1800, so every shipped number is consistent — but they are two keys, and a careful reader will notice. |
 
 ### K. Simulator, backends and determinism (7)
 
 | # | Question | Say this | If pushed |
 |---|---|---|---|
-| 118 ★★ | Did you use SUMO or not? Be precise. | The SUMO backend is fully implemented and selected automatically when SUMO is installed. **Every number in this report was produced by the built-in backend.** I will not imply otherwise. | `SumoBackend` (168 lines) drives TraCI: `netgen.py` writes nodes and edges, `netconvert --tls.guess` derives the connections and a default light program, and the backend then overrides the light every step with `setRedYellowGreenState`. It shares the identical `SimBackend` interface, so switching is a config value — but switching would change the numbers, and I have not re-measured on SUMO. |
+| 118 ★★ | Did you use SUMO or not? Be precise. | The SUMO backend is fully implemented and selected automatically when SUMO is installed. **Every number in this report was produced by the built-in backend.** I will not imply otherwise. | `SumoBackend` (500 lines) drives TraCI: `netgen.py` writes nodes and edges, `netconvert --tls.guess` derives the connections and a default light program, and the backend then overrides the light every step with `setRedYellowGreenState`. It shares the identical `SimBackend` interface, so switching is a config value — but switching would change the numbers, and I have not re-measured on SUMO. |
 | 119 ★ | What exactly does your built-in simulator model? | A point-queue, store-and-forward network. Poisson arrivals at each boundary approach, a queue per (junction, approach), discharge at saturation flow while green, then a fixed link travel time to the next junction. | Concretely: 0.5 veh/s per green lane implemented as a credit accumulator, so one vehicle every 2 s; a 200 m link at 13.9 m/s is 14.4 s of transit, which is what makes green-wave coordination worth learning; routes are precomputed straight corridors with a 10 % chance of one turn, so every trip terminates. |
 | 120 ★★ | What does it *not* model? | Four things I would list before being asked: **no spill-back** — queues are unbounded, so a jammed approach never blocks the junction upstream; no car-following or acceleration; no lane changing or protected turn lanes; and no true per-vehicle speed, only a moving fraction. | Spill-back is the most consequential omission, and it cuts against me in a specific way: gridlock is the failure mode adaptive control is most valuable for, and my simulator cannot produce it. So the rush-hour advantage is measured in a world that is *kinder* than reality to the fixed-time baseline in some respects and harsher in others. Honest position: the direction of the result is safe, the magnitude is simulator-specific. |
 | 121 | Why build a simulator instead of just using SUMO? | Two reasons, one principled and one practical. RL needs a very large number of samples, and the point-queue model runs 112 episodes in 33 seconds. And the project has to install and run on any machine with Python and NumPy — a demo that needs a SUMO install is a demo that fails on the day. | The architecture is what protects the claim: both backends implement the same interface and return the same metric schema, so no environment, agent or evaluation code knows which one it is talking to. The shortcut is contained in one file. |
@@ -821,10 +828,10 @@ technical depth plus the follow-up they will ask). ★ marks the ones most likel
 
 | # | Question | Say this | If pushed |
 |---|---|---|---|
-| 125 ★ | How is the code organised? | 43 Python files, 6,655 lines, in the `atsc` package: seven sub-packages — `sim` (backends), `envs` (environment + safety FSM + observation), `agents` (learner, nets, replay), `control` (three controllers + preemption), `train`, `eval`, `dashboard` — plus the shared `config`, `vehicles` and `seeding` modules. `config.yaml` is the single source of truth. | The design rule is that dependencies point inwards to `sim/backend.py`, which is the most imported module in the package (10 modules and 7 test files) and defines the abstract interface plus the metrics accumulator. That is what makes SUMO ↔ built-in interchangeable. |
+| 125 ★ | How is the code organised? | 43 Python files, 6,835 lines, in the `atsc` package: seven sub-packages — `sim` (backends), `envs` (environment + safety FSM + observation), `agents` (learner, nets, replay), `control` (three controllers + preemption), `train`, `eval`, `dashboard` — plus the shared `config`, `vehicles` and `seeding` modules. `config.yaml` is the single source of truth. | The design rule is that dependencies point inwards to `sim/backend.py`, which is the most imported module in the package (10 modules and 7 test files) and defines the abstract interface plus the metrics accumulator. That is what makes SUMO ↔ built-in interchangeable. |
 | 126 ★ | What does the dashboard actually do? | Runs two environments side by side — RL and the fixed-time baseline — on the same seed, advanced by a background task every 200 ms, and streams compact frames to every browser over one WebSocket. Seven live controls: play, pause, step, reset, speed, scenario, send an emergency vehicle. | The front end is about 4,900 lines of hand-written HTML, CSS and JavaScript with **zero third-party libraries** — the maps, the 18 vehicle sprites and the chart are drawn directly on Canvas. No CDN request anywhere, which is why it works with the network unplugged. The two maps fill the screen (*RL Agent System* vs *Traditional Traffic System*), and every emergency vehicle is tracked on both: circled, labelled *Moving* / *Waiting* / *Not moving* (no progress for 30 s), the light it waits at ringed, its route ahead dashed, and marked at its queue's "+n" badge when it waits too far back to be drawn. A line above each map and a tracker under them say why it is (not) moving, which junction it is at and which system has it further along — from three protocol fields (`ed`, `ev`, `evx`) that read the simulator's own queues and links. While one is on the road the race plays in slow motion, and it pauses for 5 s on the result. |
 | 127 ★ | Is the dashboard secure? | Not in the sense a production service would be, and I can be precise about why that is acceptable here. `POST /api/cmd` is unauthenticated, so anyone who can reach the port can change the scenario or reset the run. | Locally it binds `127.0.0.1`, so the exposure is local. The public instance described in `docs/DEPLOYMENT.md` is deliberately open, because the attack surface is a simulation: no account, no upload, no database, no filesystem write, and nothing persisted between restarts. Before this became anything but a demo it would need auth on `/api/cmd`, a rate limit, an origin check and one session per visitor. I list it as a known weakness rather than waiting to be caught by it. |
-| 128 ★ | What do your tests cover? | 172 tests in 16 files, all passing, and GitHub Actions runs them on every push. The core: safety FSM (5), controllers including preemption (5), PER sum-tree and the NumPy net (5), environment API and determinism (4), reward shaping (3), benchmark aggregation maths (4), checkpoint/config compatibility and QMIX (7). The dashboard: the wire protocol (a delta stream rebuilds every keyframe; the browser's between-frame picture equals the simulator second by second; the JavaScript model matches its Python mirror), the FastAPI and stdlib servers (WebSocket, path traversal, validation), the static files, the one-thread BLAS pinning, the vehicle catalogue (and that it is cosmetic), and the emergency tracker — the server's feed checked against the simulator at every frame, and the page's own `tracker.js` run in Node on a recorded rush-hour run. | Two are behavioural rather than unit tests, which I think is the more valuable kind here: `test_max_pressure_beats_fixed_on_high` pins the baseline ordering, and `test_numpy_qnet_learns_fixed_target` proves the from-scratch network genuinely learns by regressing it onto a fixed target. |
+| 128 ★ | What do your tests cover? | 189 tests in 18 files, all passing, and GitHub Actions runs them on every push. The core: safety FSM (5), controllers including preemption (5), the two preemption modes and the simulators' view of each emergency vehicle's route (14), the emergency evaluation (3), PER sum-tree and the NumPy net (5), environment API and determinism (4), reward shaping (3), benchmark aggregation maths (4), checkpoint/config compatibility and QMIX (7). The dashboard: the wire protocol (a delta stream rebuilds every keyframe; the browser's between-frame picture equals the simulator second by second; the JavaScript model matches its Python mirror), the FastAPI and stdlib servers (WebSocket, path traversal, validation), the static files, the one-thread BLAS pinning, the vehicle catalogue (and that it is cosmetic), and the emergency tracker — the server's feed checked against the simulator at every frame, and the page's own `tracker.js` run in Node on a recorded rush-hour run. | Two are behavioural rather than unit tests, which I think is the more valuable kind here: `test_max_pressure_beats_fixed_on_high` pins the baseline ordering, and `test_numpy_qnet_learns_fixed_target` proves the from-scratch network genuinely learns by regressing it onto a fixed target. |
 | 129 ★★ | What is *not* tested? | Named plainly: no test of the SUMO backend — it cannot run without SUMO installed; no end-to-end training test; and the shipped checkpoint's numbers are checked by CI's benchmark reproduction rather than by a unit test. | Coverage is honest about where it stops. The reproduction is the strongest check there is — CI reruns all 36 runs on every push, with PyTorch and with the NumPy network, and fails if the CSV changes by a byte. A short SUMO smoke test on a machine that has SUMO would be the next test to add. |
 | 130 | Why no PyTorch, FastAPI or SUMO on the machine that produced the results? | Because the fallbacks are the point. The project ships a NumPy Q-network, a stdlib HTTP server and a built-in simulator so that it runs on a bare Python install. | That is also the strongest evidence they are real fallbacks and not decorative `try/except` blocks — the shipped model was trained by the NumPy network, and the checkpoint format is deliberately a portable dict of arrays so the same file loads under PyTorch unchanged (`test_numpy_qnet_weight_portability`). |
 
@@ -835,10 +842,10 @@ These are the questions designed to catch an overclaim. In every case the winnin
 | # | Question | Say this | If pushed |
 |---|---|---|---|
 | 131 ★★ | Is this deep reinforcement learning or just deep learning? | Deep RL. There are no labels anywhere — the network learns from a scalar reward produced by the environment's own dynamics, via temporal-difference bootstrapping. | If it were supervised learning I would need a dataset of correct signal decisions, which does not exist. The "deep" part is only the function approximator; the learning signal is the Bellman target. |
-| 132 ★★ | Your reward uses waiting time and you report waiting time. Isn't that circular? | It is the same quantity, and I would rather explain the distinction than deny it. Optimising the objective you measure is what optimisation *is*; the honest question is whether I also report things I did not optimise. | I do: throughput, emergency clearance, moving fraction and seed stability are all outside the reward, and the first of those (+0.1 % to +7.6 %) is the weakest result in the set — which is exactly why leaving it in matters. |
+| 132 ★★ | Your reward uses waiting time and you report waiting time. Isn't that circular? | It is the same quantity, and I would rather explain the distinction than deny it. Optimising the objective you measure is what optimisation *is*; the honest question is whether I also report things I did not optimise. | I do: throughput, emergency clearance, moving fraction and seed stability are all outside the reward, and the first of those (−0.2 % to +7.7 %) is the weakest result in the set — which is exactly why leaving it in matters. |
 | 133 ★★ | Did you invent anything, or just assemble known parts? | I assembled known parts. Double DQN (2016), Dueling networks (2016), PER (2016) and max-pressure are all published; the contribution is the integrated system, the safety layer, the honest baseline comparison and the reproducibility. | I would not claim algorithmic novelty for a final-year project, and claiming it is the fastest way to lose an examiner's trust. What is mine is every line of the environment, the point-queue simulator, the from-scratch NumPy network with its own backprop, the multi-agent wrapper and the evaluation harness. |
 | 134 ★★ | Would this work on a real road tomorrow? | No. It is trained and evaluated entirely in simulation, on synthetic Poisson demand, with an oracle view of queues and emergencies. | The gap list is specific: sensing noise and detector failure, spill-back, real turning movements, pedestrians, calibration against real counts, and a safety case for a certified controller. A credible path is shadow mode — run the policy alongside the existing controller and log disagreements before it is ever allowed to actuate. |
-| 135 ★ | Show me where your policy is *worse* than a baseline. | Max-pressure beats it at low and medium density: 19.22 vs 22.31 s and 22.52 vs 25.24 s. And throughput at low density is 0.1 % *below* fixed-time. | Both are in the shipped CSV; neither is hidden. The trade is deliberate — a switch penalty and a policy trained across all four densities gives up a little in the easy regime to win 13 % over max-pressure at saturation. |
+| 135 ★ | Show me where your policy is *worse* than a baseline. | Max-pressure beats it at low and medium density: 19.22 vs 22.02 s and 22.52 vs 24.85 s. And throughput at low density is 0.2 % *below* fixed-time. And with the same preemption on both grids, the police car on the side street would be slower under RL. | Both are in the shipped CSV; neither is hidden. The trade is deliberate — a switch penalty and a policy trained across all four densities gives up a little in the easy regime to win 13 % over max-pressure at saturation. |
 | 136 ★ | Does the agent choose the yellow duration? | No. The agent's entire action space is 2 — target phase North-South or East-West. Yellow and all-red are inserted by the FSM. | This is the question that catches people who oversell agent authority. The correct framing is that the agent proposes; the safety machine disposes. |
 | 137 ★ | Is QMIX part of your results? | No. It is implemented, disabled in config, and requires PyTorch, which the shipped run did not have. **No reported result used it.** | I describe it as scaffolding for the next stage. Claiming a CTDE result I did not run would be the single easiest thing for an examiner to disprove — they only have to grep `qmix.enabled`. |
 | 138 ★ | What is your accuracy? | Accuracy is not defined for this problem — there is no ground-truth correct action to be right or wrong about. | The metrics that do apply are average waiting time, queue length, throughput and clearance time, all versus two baselines on identical seeds. If the question means "how well does the network fit", the training loss is 0.78–1.19 late in training and rising, which in DQN is expected and not a quality measure. |
@@ -852,7 +859,7 @@ These are the questions designed to catch an overclaim. In every case the winnin
 | 141 ★ | What would you do differently? | Three things: measure on SUMO before writing any number down, run 10 seeds instead of 3, and run the two ablations (no-PER, vanilla DQN) that would let me attribute the gain to the specific algorithm choices. | I would also rename `avg_speed` to `moving_fraction` — the current label is the most misleading thing in my metric set, and I found it by re-deriving every number from the CSVs rather than trusting the report. |
 | 142 ★ | What did you learn that you did not expect? | That the most defensible result was the one I did not aim for: variance. RL's seed spread at rush is 2.69 s against fixed-time's 30.02 s. | It reframed how I think about the contribution — adaptivity buys predictability under load, which is arguably what an operator values more than a better mean. |
 | 143 | If I gave you one more month, what would you do? | In order: SUMO re-measurement, 10 seeds with confidence intervals, the two ablations, then sensing noise. Only after that would I touch QMIX. | The ordering is deliberate — it is credibility work before capability work. Adding a fancier algorithm on top of a three-seed point-queue result would make the project look more advanced and be worth less. |
-| 144 ★★ | Summarise your project in thirty seconds. | Four traffic lights, each an independent Double-Dueling-DQN agent with shared weights, seeing its own queues and its neighbours' pressure, choosing a phase every five seconds under a hard safety machine it cannot override. Against a fixed 60-second cycle it cuts average waiting time by 15 % in light traffic and 61 % at rush hour, clears emergency vehicles 3.5× faster under saturation, and is 11× more consistent seed to seed. All in simulation, all reproducible from the shipped code. | If they want one number: **61 % at rush**. If they want one caveat, give it before they ask: it is simulation only, on synthetic demand, and max-pressure still beats it when the roads are quiet. |
+| 144 ★★ | Summarise your project in thirty seconds. | Four traffic lights, each an independent Double-Dueling-DQN agent with shared weights, seeing its own queues and its neighbours' pressure, choosing a phase every five seconds under a hard safety machine it cannot override. Against a fixed 60-second cycle it cuts average waiting time by 16 % in light traffic and 61 % at rush hour, clears an ambulance 4.5× faster under saturation with a green corridor, and is 7× more consistent seed to seed. All in simulation, all reproducible from the shipped code. | If they want one number: **61 % at rush**. If they want one caveat, give it before they ask: it is simulation only, on synthetic demand, and max-pressure still beats it when the roads are quiet. |
 
 ---
 
@@ -879,13 +886,13 @@ Every one is verified against the shipped code, `config.yaml` or `outputs/*.csv`
 | 14 | Curriculum | low/medium/high/rush **cycled round-robin**, 28 episodes each — cycling, not ramping | `trainer.py:76` |
 | 15 | Shipped model | greedy-eval **best**, tag `ep70_wait27.0`, ε counter **16,800 = 70×240**; final weights kept separately | `models/pretrained/atsc_2x2.pt` |
 | 16 | Evaluation | **36 runs** = 3 controllers × 4 densities × 3 seeds (0,1,2), 1800 s, 30 s warm-up | `outputs/benchmark_results.csv` |
-| 17 | Headline wait | RL vs fixed: **−15.1 % / −26.5 % / −48.8 % / −61.2 %** (low→rush), mean **≈38 %** | recomputed from CSV |
-| 18 | Max-pressure | **19.22 / 22.52 / 35.56 / 50.54 s** — it beats RL at low and medium, loses at high and rush | same CSV |
-| 19 | Throughput | **−0.1 / +0.0 / +2.8 / +7.6 %** — demand-bound, the deck's +35–45 % is **not** met | same CSV |
-| 20 | Emergency clearance | 26.0→20.0 (1.30×), 28.7→18.3 (1.56×), 80.0→41.7 (1.92×), **113.7→32.7 (3.48×)** | same CSV |
-| 21 | Consistency | seed spread at rush: fixed **30.02 s** vs RL **2.69 s** → ~**11× more consistent** | same CSV |
-| 22 | Codebase | **66 Python files, 10,625 lines** (6,655 in the `atsc` package), 4,928 front-end lines, **zero front-end dependencies** | `git ls-files` |
-| 23 | Tests | **172 tests, all passing**, in 16 files; GitHub Actions runs them on every push | `tests/`, `.github/workflows/ci.yml` |
+| 17 | Headline wait | RL vs fixed: **−16.2 % / −27.6 % / −48.2 % / −61.1 %** (low→rush), mean **≈38 %** | recomputed from CSV |
+| 18 | Max-pressure | **19.22 / 22.52 / 35.56 / 50.54 s** — it beats RL at low and medium, ties at high, loses at rush | same CSV |
+| 19 | Throughput | **−0.2 / 0.0 / +2.7 / +7.7 %** — demand-bound, the deck's +35–45 % is **not** met | same CSV |
+| 20 | Emergency clearance | 26.0→18.7 (1.39×), 28.7→16.3 (1.76×), 80.0→31.7 (2.53×), **113.7→25.3 (4.49×)**; per type over 1,000 dispatches each: ambulance −60 %, police car −9 %, fire engine −59 % | same CSV, `outputs/emergency/` |
+| 21 | Consistency | seed spread at rush: fixed **30.02 s** vs RL **4.08 s** → ~**7× more consistent** | same CSV |
+| 22 | Codebase | **69 Python files, 11,729 lines** (6,835 in the `atsc` package), 4,928 front-end lines, **zero front-end dependencies** | `git ls-files` |
+| 23 | Tests | **189 tests, all passing**, in 18 files; GitHub Actions runs them on every push | `tests/`, `.github/workflows/ci.yml` |
 | 24 | Reproducibility | **36/36** benchmark rows reproduce the shipped CSV **byte for byte**, with PyTorch and with the NumPy network | CI, on every push |
 | 25 | Honest boundary | all numbers from the **built-in** backend; SUMO implemented but **not measured**; **QMIX disabled** | `backend: auto`, `qmix.enabled: false` |
 
@@ -919,7 +926,7 @@ is consistent with it. Timings are for spoken pace.
 > the side-street demand, and a symmetric fixed cycle simply cannot express that.
 >
 > **(0:20–0:50 — what I built)**
-> I built an adaptive controller for a 2×2 grid of four signalised junctions. Each junction is
+> I built a multi-agent RL controller for a 2×2 grid of four signalised junctions. Each junction is
 > its own reinforcement-learning agent — a Double Dueling DQN with prioritized experience
 > replay. Every five seconds each agent reads 23 numbers: its own four queues and waiting
 > times, its current phase, how long that green has been running, emergency flags, and its
@@ -963,7 +970,7 @@ Ranked by probability × damage. If time is short, rehearse only these.
 | 1 | 144 | Summarise your project in thirty seconds |
 | 2 | 118 | Did you use SUMO or not — be precise |
 | 3 | 93 | Max-pressure beats you at low and medium. Explain |
-| 4 | 112 | Your deck claims +35–45 % throughput; the data says +0.1–7.6 % |
+| 4 | 112 | Your deck claims +35–45 % throughput; the data says −0.2 to +7.7 % |
 | 5 | 86 | Isn't the emergency result just your override, not the RL? |
 | 6 | 75 | How do you guarantee the light never shows conflicting greens? |
 | 7 | 62 | Is it really multi-agent if the agents share one network? |
@@ -1024,7 +1031,7 @@ credibility — it shows you know the literature you are standing on.
 | "I validated on real traffic data" | Demand is synthetic Poisson; **no real dataset is used anywhere** |
 | "I beat SCATS / SCOOT" | Not compared — no reference implementation was run |
 | "I ran ablations on PER and Double DQN" | **Not run.** They are listed as the first two next experiments |
-| "35–45 % throughput improvement" | Measured **+0.1 % to +7.6 %**; the target was not met and the docs now say so |
+| "35–45 % throughput improvement" | Measured **−0.2 % to +7.7 %**; the target was not met and the docs now say so |
 | "It is ready for deployment" | Simulation only, oracle sensing, unauthenticated dashboard, no spill-back model |
 | "Ponytail is part of the system" | It is a development-time assistant plugin that shaped code style. Correct phrasing: *"I used Ponytail to keep the codebase lean."* It is **not** a runtime component |
 
@@ -1040,7 +1047,7 @@ something an examiner expected to have to extract:
 
 ---
 
-*End of VIVA_MASTER.md. Verification state: 172/172 tests pass,
+*End of VIVA_MASTER.md. Verification state: 189/189 tests pass,
 `python run.py doctor` reports config and checkpoint OK, and all 36 benchmark rows reproduce
 the shipped CSV byte for byte with either network; CI repeats the tests and the
 reproduction on every push.*

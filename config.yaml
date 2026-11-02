@@ -1,5 +1,5 @@
 # ==========================================================================
-#  Adaptive Traffic Signal Control (RL)  —  single source of truth
+#  MARL Traffic Signal Control  —  single source of truth
 #  Every module reads from here. Change values, not code.
 #  Units: seconds (s), metres (m), metres/second (m/s), vehicles/second (veh/s)
 # ==========================================================================
@@ -57,16 +57,23 @@ scenarios:
   rush:   { arrival_scale: 1.00, time_varying: false, description: "Rush-hour sustained heavy demand" }
 
 # --------------------------------------------------------------------------
-# Emergency-vehicle preemption
-#   An emergency vehicle waiting at a junction makes that junction request the phase that
-#   serves it (src/atsc/control/emergency.py). The request still goes through the safety
-#   FSM, so amber and all-red are never skipped. Detection is at the stop line: the next
-#   junction is pre-empted when the vehicle reaches it, not before.
+# Emergency-vehicle preemption (src/atsc/control/emergency.py)
+#   A pre-empted junction requests the phase that serves the emergency vehicle. The request
+#   still goes through the safety FSM, so min-green, amber and all-red are never skipped.
+#   Controllers listed in `corridor` clear a green corridor: from the moment the vehicle is
+#   on the road, every junction still ahead of it on its route requests its phase until the
+#   vehicle has crossed. Every other controller pre-empts at the stop line: a junction
+#   requests the phase once the vehicle is waiting there, so the next junction only starts
+#   to change when the vehicle reaches it.
 # --------------------------------------------------------------------------
 emergency:
   enabled: true                # dashboard switch: false hides the inject buttons and rejects
                                # injections. (The benchmark is governed by eval.inject_emergency.)
-  preemption: true             # deterministic safe-corridor override
+  preemption: true             # deterministic override (false = no preemption at all)
+  corridor: [rl]               # controllers that clear a green corridor along the route: the
+                               # multi-agent RL system coordinates its junctions; fixed-time and
+                               # max-pressure pre-empt at the stop line. Any of: fixed_time,
+                               # max_pressure, rl ([] = stop line for every controller)
   vtype_speed_factor: 1.3      # ambulance speed factor - the benchmark's ambulance uses it, so
                                # changing it changes the published emergency-clearance numbers
   types:                       # one "Inject" button per type on the dashboard

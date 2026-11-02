@@ -6,7 +6,7 @@
   <meta name="color-scheme" content="dark">
   <meta name="theme-color" content="#090e1a">
   <meta name="description" content="Live race on identical traffic: an RL Agent System (four multi-agent deep reinforcement learning signal controllers) against a traditional fixed-time system, with live emergency-vehicle tracking.">
-  <title>Adaptive Traffic Signal Control · Live</title>
+  <title>MARL Traffic Signal Control · Live</title>
   <link rel="icon" href="/static/icon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="/static/styles.css">
   <script type="module" src="/static/js/main.js"></script>
@@ -18,7 +18,7 @@
     <header class="top">
       <svg class="logo" viewBox="0 0 20 40" aria-hidden="true"><rect x="1" y="1" width="18" height="38" rx="6" class="logo-body"/><circle cx="10" cy="9.5" r="4.2" class="lamp-r"/><circle cx="10" cy="20" r="4.2" class="lamp-a"/><circle cx="10" cy="30.5" r="4.2" class="lamp-g"/></svg>
       <div class="titles">
-        <h1>Adaptive Traffic Signal Control</h1>
+        <h1>MARL Traffic Signal Control</h1>
         <p class="sub"><span class="long">Same vehicles enter both grids at the same moments — <span class="c-rl">green</span> is the RL Agent System, <span class="c-tr">grey</span> the Traditional Traffic System. Lower numbers are better.</span><span class="short">Same traffic on both grids · <span class="c-rl">green</span> = RL Agent System · lower is better</span></p>
       </div>
       <div class="status">
@@ -130,7 +130,7 @@
             <div class="one tr"><span class="who tr"><i></i>Traditional System</span><span class="num"><span id="wFT">–</span><small>s</small></span></div>
           </div>
           <p class="note" id="resNote">The numbers fill in as vehicles arrive.</p>
-          <p class="bench">Benchmark, 36 runs: <b>15%</b> less waiting in light traffic, <b>61%</b> less at rush hour · <a href="https://github.com/Adityakumar1805/marl-traffic-signal-control/blob/main/REPORT.md" target="_blank" rel="noopener">Full report ↗</a></p>
+          <p class="bench">Benchmark, 36 runs: <b>16%</b> less waiting in light traffic, <b>61%</b> less at rush hour · <a href="https://github.com/Adityakumar1805/marl-traffic-signal-control/blob/main/REPORT.md" target="_blank" rel="noopener">Full report ↗</a></p>
         </section>
 
         <div class="tiles" id="tiles">
@@ -145,7 +145,7 @@
             <p class="ts">vehicles that have finished their journey this run</p>
           </section>
           <section class="tile t-em" id="emTile" aria-labelledby="eTitle">
-            <div class="th"><h2 id="eTitle"><span aria-hidden="true">🚨</span> Emergency test <button type="button" class="tip" aria-label="What is this?" data-tip="Send an ambulance, police car or fire engine: the same vehicle enters both grids, both systems give it priority at every junction, and the tracker shows where it is and whether it is moving.">?</button></h2><span class="chip" id="eChip" hidden></span></div>
+            <div class="th"><h2 id="eTitle"><span aria-hidden="true">🚨</span> Emergency test <button type="button" class="tip" aria-label="What is this?" data-tip="Send an ambulance, police car or fire engine: the same vehicle enters both grids and both give it priority (the RL system turns every junction ahead of it green as soon as it is sent, the traditional one each junction once it gets there), and the tracker shows where it is and whether it is moving.">?</button></h2><span class="chip" id="eChip" hidden></span></div>
             <p class="tv muted" id="eHead">Not run yet</p>
             <p class="ts" id="eText">Send one and see which system gets it through faster. It is circled and tracked on both grids.</p>
             <button type="button" class="linkbtn" id="eTimeline" aria-haspopup="dialog" hidden>See its timeline</button>
@@ -189,7 +189,7 @@
     <ul class="help">
       <li><b>Two grids, the same traffic.</b> The same vehicles enter both grids at the same moments. <span class="c-rl">Green</span> is the RL Agent System (four learning agents, one per junction); <span class="c-tr">grey</span> is the Traditional Traffic System (a fixed 30 s timer per direction).</li>
       <li><b>Lower is better</b> for waiting time and queues; higher is better for trips completed.</li>
-      <li><b>Emergency vehicles</b> (🚨 button): choose an ambulance, a police car or a fire engine; the same vehicle enters both grids. It is circled on both maps with a label saying whether it is <b class="c-ok">moving</b>, <b class="c-wait">waiting</b> or <b class="c-bad">not moving</b> (no progress for 30 s), the light it waits at is ringed and its route ahead is dashed. The line above each map says the same in words, and the tracker under the maps shows which system is ahead, every junction and how long it took to get through. When it waits too far back in a long queue to be drawn, a dashed circle marks that queue's <b>+n</b> badge. <b>Timeline</b> lists every step.</li>
+      <li><b>Emergency vehicles</b> (🚨 button): choose an ambulance, a police car or a fire engine; the same vehicle enters both grids. It is circled on both maps with a label saying whether it is <b class="c-ok">moving</b>, <b class="c-wait">waiting</b> or <b class="c-bad">not moving</b> (no progress for 30 s), the light it waits at is ringed and its route ahead is dashed. The RL system clears a green corridor: every junction ahead of the vehicle starts to switch as soon as it is sent; the traditional system changes a light once the vehicle waits at it. The line above each map says the same in words, and the tracker under the maps shows which system is ahead, every junction and how long it took to get through. When it waits too far back in a long queue to be drawn, a dashed circle marks that queue's <b>+n</b> badge. <b>Timeline</b> lists every step.</li>
       <li id="helpAuto" hidden></li>
       <li><b>Safety first:</b> both systems must show a 3 s amber and a 2 s all-red at every change, even for an emergency vehicle.</li>
       <li><b>Shared demo:</b> everyone watching sees the same run and the same button presses.</li>

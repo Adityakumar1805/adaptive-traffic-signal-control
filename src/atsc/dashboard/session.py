@@ -237,7 +237,7 @@ class ControllerRunner:
         if controller_name == "rl":
             kwargs = {"checkpoint": checkpoint, "allow_untrained": allow_untrained}
         self.controller = build_controller(controller_name, cfg, topo, **kwargs)
-        self.emergency = EmergencyController(cfg, topo)
+        self.emergency = EmergencyController(cfg, topo, controller=self.controller.name)
         self.env.set_emergency_controller(self.emergency)
 
         self.j_of = {iid: j for j, iid in enumerate(topo.order)}

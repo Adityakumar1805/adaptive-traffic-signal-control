@@ -188,7 +188,7 @@ def build_routes(cfg, scenario: str, seed: int) -> Path:
                 if to_edge is None:
                     continue
                 trips.append(
-                    f'  <trip id="v{vid}" depart="{t}.00" from="{from_edge}" '
+                    f'  <trip id="v{vid}" type="car" depart="{t}.00" from="{from_edge}" '
                     f'to="{to_edge}" departLane="best" departSpeed="max"/>'
                 )
                 vid += 1

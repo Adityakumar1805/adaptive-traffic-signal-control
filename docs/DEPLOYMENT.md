@@ -112,7 +112,7 @@ to GitHub does not redeploy it by itself.
 
    ```yaml
    ---
-   title: Adaptive Traffic Signal Control
+   title: MARL Traffic Signal Control
    sdk: docker
    app_port: 7860
    ---
@@ -224,7 +224,7 @@ Open the site on a desktop browser with DevTools (F12) open, then on a phone.
 | 5 | the race visible | laptop / desktop (1280 × 720 and 1366 × 768 included): the header, the controls in one row and both 2×2 grids (*RL Agent System* and *Traditional Traffic System*) with every junction and stub and the line above each, **without scrolling**; the tracker, the live result, the chart and the tiles under them. Phone: the first grid on the first screen and both within one scroll. No sideways scrolling anywhere |
 | 6 | signals | each approach has a lamp head and a coloured stop line; amber and all-red appear between greens (easiest at 0.2× speed) |
 | 7 | the numbers are live | for the first 2 simulated minutes the live result says **Measuring the first two minutes…**; after that it reads *The RL Agent System is cutting waiting time by N%*, *Both systems are about even right now* or *The Traditional System is ahead right now, by N%*; the chart draws both lines and **Cars queued** switches it to the queues |
-| 8 | every emergency vehicle is tracked | press **Send emergency vehicle** and send an ambulance, a police car and a fire engine from its menu: the race drops to slow motion (the status says *Slow motion until it is through*), and each one appears on both grids circled by a pulsing ring with a label (*Ambulance · Moving* / *Waiting 0:12* / *Not moving*), the light it waits at ringed and its route ahead dashed; one waiting too far back in a long queue is marked by a dashed ring on that queue's `+n` badge (*26th in line*). The line above each map and the tracker under the maps say on each grid why it is (not) moving, which junction it is at (*Junction 1 of 2*) and which system has it further along; once one is through both grids the race pauses for 5 s on the result ("RL Agent System got it through 3.5× faster · 1:45 sooner") and carries on by itself; **Timeline** lists every step. With `dashboard.max_active_emergencies` (4) vehicles still out, one more is refused with a plain message |
+| 8 | every emergency vehicle is tracked | press **Send emergency vehicle** and send an ambulance, a police car and a fire engine from its menu: the race drops to slow motion (the status says *Slow motion until it is through*), and each one appears on both grids circled by a pulsing ring with a label (*Ambulance · Moving* / *Waiting 0:12* / *Not moving*), the light it waits at ringed and its route ahead dashed; one waiting too far back in a long queue is marked by a dashed ring on that queue's `+n` badge (*26th in line*). The line above each map and the tracker under the maps say on each grid why it is (not) moving, which junction it is at (*Junction 1 of 2*) and which system has it further along; once one is through both grids the race pauses for 5 s on the result ("RL Agent System got it through N× faster · m:ss sooner") and carries on by itself; **Timeline** lists every step. With `dashboard.max_active_emergencies` (4) vehicles still out, one more is refused with a plain message |
 | 9 | controls | Pause (the button turns into **Play** and the status says **Live · paused**), Restart, **Speed**, **Traffic** and **⋯ → Step one decision** change the run; they are shared: every visitor sees the change |
 | 10 | details | **⋯ → Technical details** shows the model file, the network type and the build id that `/healthz` reports; **⋯ → Vehicle types on the road** lists the 18 kinds with live counts |
 | 11 | reconnect | toggle the network off and on (DevTools -> Network -> Offline): the status shows **Reconnecting…** (after a few seconds the full-screen card), then **Live** again without a reload |
@@ -310,7 +310,7 @@ python run.py demo           # dashboard on http://127.0.0.1:8000
 python run.py doctor         # dependency and environment check
 python run.py train --quick  # 8 episodes, a separate *_quick.pt
 python run.py eval           # the 36-run benchmark (built-in simulator)
-pytest                       # 172 tests
+pytest                       # 189 tests
 python tools/e2e_browser.py --local   # the browser check above, against a local server
 ```
 

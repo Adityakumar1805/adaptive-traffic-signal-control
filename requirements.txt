@@ -1,5 +1,5 @@
 # ==========================================================================
-#  AI-Based Adaptive Traffic Signal Control System using Reinforcement Learning
+#  MARL Traffic Signal Control (multi-agent reinforcement learning)
 #  Pinned, mutually-compatible, CPU-friendly dependencies (Python 3.10 - 3.12)
 # --------------------------------------------------------------------------
 #  Windows (operator's target):  pip install -r requirements.txt

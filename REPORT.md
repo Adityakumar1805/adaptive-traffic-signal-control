@@ -1,4 +1,4 @@
-# AI-Based Adaptive Traffic Signal Control System using Reinforcement Learning
+# MARL Traffic Signal Control using Multi-Agent Reinforcement Learning
 ### Project Report
 
 | | |
@@ -19,8 +19,10 @@ observe their neighbours, which lets coordinated *green-wave* progression emerge
 runs on the **SUMO** microscopic simulator (with a self-contained fallback simulator), adds
 **emergency-vehicle preemption**, and is benchmarked against **fixed-time** and **max-pressure**
 controllers across four traffic densities. On identical traffic, the RL controller reduces
-average waiting time by **15–61%** versus fixed-time (mean **≈38%**), with the largest gains
-in congested conditions, and clears emergency vehicles up to **~3.5× faster** (at rush).
+average waiting time by **16–61%** versus fixed-time (mean **≈38%**), with the largest gains
+in congested conditions, and its green corridor clears an ambulance up to **~4.5× faster** (at
+rush); every emergency type — ambulance, police car, fire engine — gets through faster on
+average than under fixed-time.
 
 ---
 
@@ -136,7 +138,10 @@ r_i = − w_wait · (Δ_i / N)  −  w_pressure · (P_i / N)  −  w_switch · 1
 | `w_wait, w_pressure, w_switch, w_emergency` | weights | 1.0, 0.30, 0.20, 5.0 |
 
 Minimising delay and pressure reduces congestion; the switch penalty discourages wasteful
-flicker; the emergency term rewards clearing ambulances quickly.
+flicker; the emergency term rewards clearing ambulances quickly. Training never sends an
+emergency vehicle, though, so `c_i` and the four emergency flags are always zero while the
+shipped policy learns: emergency vehicles are handled by the rule-based preemption
+(`control/emergency.py`, a green corridor on the RL grid; §6.3), not by the learned policy.
 
 ### 4.4 Learning algorithm
 
@@ -182,41 +187,63 @@ every difference is attributable to the control policy alone.
 
 | Scenario | Avg wait — Fixed | Avg wait — Max-Pressure | Avg wait — **RL** | **RL vs Fixed** |
 |---|---:|---:|---:|---:|
-| Low | 26.3 s | 19.2 s | 22.3 s | **−15.1%** |
-| Medium | 34.3 s | 22.5 s | 25.2 s | **−26.5%** |
-| High | 68.7 s | 35.6 s | 35.2 s | **−48.8%** |
-| Rush | 113.0 s | 50.5 s | 43.9 s | **−61.2%** |
+| Low | 26.3 s | 19.2 s | 22.0 s | **−16.2%** |
+| Medium | 34.3 s | 22.5 s | 24.8 s | **−27.6%** |
+| High | 68.7 s | 35.6 s | 35.6 s | **−48.2%** |
+| Rush | 113.0 s | 50.5 s | 43.9 s | **−61.1%** |
 | **Mean** | | | | **≈ −38%** |
 
 ### 6.2 Queue length (vehicles / intersection)
 
 | Scenario | Fixed | Max-Pressure | **RL** | **RL vs Fixed** |
 |---|---:|---:|---:|---:|
-| Low | 3.0 | 2.2 | 2.5 | −15% |
-| Medium | 6.8 | 4.4 | 5.0 | −27% |
-| High | 20.1 | 10.4 | 10.2 | −49% |
-| Rush | 36.5 | 16.3 | 14.1 | −61% |
+| Low | 3.0 | 2.2 | 2.5 | −16% |
+| Medium | 6.8 | 4.4 | 4.9 | −28% |
+| High | 20.1 | 10.4 | 10.4 | −48% |
+| Rush | 36.5 | 16.3 | 14.2 | −61% |
 
 ### 6.3 Emergency-vehicle clearance time
 
-With preemption enabled, an injected ambulance clears its corridor **1.3× to 3.5× faster** than
-under fixed-time control — measured 26.0→20.0 s (low), 28.7→18.3 s (medium), 80.0→41.7 s (high),
-113.7→32.7 s (rush) from `outputs/benchmark_results.csv` — because the green corridor is
-requested ahead of the vehicle while the safety FSM still inserts yellow/all-red. The advantage
-grows with congestion (largest, ~3.5×, at rush).
+With preemption enabled, the benchmark's ambulance clears its corridor **1.4× to 4.5× faster**
+than under fixed-time control — measured 26.0→18.7 s (low), 28.7→16.3 s (medium), 80.0→31.7 s
+(high), 113.7→25.3 s (rush) from `outputs/benchmark_results.csv`. The RL grid clears a green
+corridor: from the moment the vehicle is sent, every junction still ahead of it requests the
+phase that serves it, so the junction ahead has switched and begun to empty its queue before
+the vehicle arrives; fixed-time (and max-pressure) pre-empt a junction only once the vehicle
+waits at its stop line. Both go through the safety FSM, so yellow and all-red are never
+skipped. The advantage grows with congestion (largest, ~4.5×, at rush).
+
+`tools/emergency_eval.py` measures each emergency type separately: in each of 40 episodes (four
+densities × seeds 0–9) it sends one vehicle of each type at 25 moments, each into its own copy
+of the running simulation, under both controllers — 1,000 matched dispatches per type
+(`outputs/emergency/`). Pooled over the densities:
+
+| Vehicle (corridor) | Travel time, Fixed → **RL** | Waiting time | Stops | Time to clear a junction |
+|---|---:|---:|---:|---:|
+| Ambulance (EW) | 61.7 → **24.5 s** (−60.4%) | 49.7 → 12.5 s | 1.78 → 1.54 | 24.8 → 6.2 s |
+| Police car (NS) | 22.9 → **20.9 s** (−8.9%) | 11.9 → 9.9 s | 1.40 → 1.29 | 5.9 → 4.9 s |
+| Fire engine (EW) | 64.0 → **26.3 s** (−58.9%) | 51.0 → 13.3 s | 1.80 → 1.66 | 25.5 → 6.7 s |
+
+Every type is faster under RL at every density. The police car, the only one on the side
+street, is the narrow case (−2.2% at rush, within the seed-to-seed spread): the agents give the
+side street less green than fixed-time's even split, so at its first junction it meets a red
+light and a longer queue more often, and its lead comes from the corridor clearing the second
+junction (see §8, item 6).
 
 ### 6.4 Figures (generated in `outputs/`)
 
 - `comparison_kpis.png` — waiting time / queue / throughput, all controllers × densities.
 - `rl_improvement.png` — RL % improvement over fixed-time with the 40–50% target band.
 - `emergency_clearance.png` — clearance time by controller.
+- `emergency/emergency_<type>.png` — each emergency type, RL against fixed-time on travel time,
+  waiting time, stops and time to clear a junction (`python tools/emergency_eval.py`).
 - `training_curve.png` — waiting time vs training episode.
 
 ### 6.5 Alignment with the proposal
 
 The proposal targeted a **40–50% reduction** in waiting time and queue length. The RL
-controller **meets or exceeds** this in the high and rush regimes (49–61%), where congestion
-actually matters, and clearly improves the medium (27%) and lightly-loaded (15%) cases. The
+controller **meets or exceeds** this in the high and rush regimes (48–61%), where congestion
+actually matters, and clearly improves the medium (28%) and lightly-loaded (16%) cases. The
 mean reduction across all densities is **≈38%**, reaching the promised band under load. This is reported
 honestly: at **low** density there is little congestion to remove, so the absolute benefit is
 small; and the near-optimal **max-pressure** baseline remains competitive — the RL policy
@@ -258,14 +285,21 @@ matches it at high density and surpasses it at rush.
 3. **Grid scale.** Results are reported on a 2×2 grid for a fast, reliable demo; 3×3 is
    supported via config but requires a full retrain.
 4. **Max-pressure gap at low and medium density.** At light and medium demand the analytic
-   max-pressure rule beats the learned policy (19.2 s vs 22.3 s, 22.5 s vs 25.2 s); RL edges
-   ahead at high demand (35.2 s vs 35.6 s) and wins clearly at rush (43.9 s vs 50.5 s).
+   max-pressure rule beats the learned policy (19.2 s vs 22.0 s, 22.5 s vs 24.8 s); RL draws
+   level at high demand (35.6 s each) and wins clearly at rush (43.9 s vs 50.5 s).
 5. **Training reproducibility.** Retraining with the same seeds is repeatable on one
    machine but not across NumPy versions; the published results come from the single shipped
    checkpoint, from which `run.py eval` regenerates them exactly. The trainer also treats the
    episode time limit as a true terminal state.
-6. **Pre-emption at the stop line.** The emergency override acts once the vehicle is queued
-   at a junction, not on approach, and it runs for every controller (fixed-time included).
+6. **Pre-emption differs between the grids.** The RL grid clears a green corridor along the
+   emergency vehicle's route; fixed-time and max-pressure pre-empt a junction once the vehicle
+   is queued at it (`emergency.corridor` in `config.yaml`). With the same preemption on both,
+   the police car on the side street would be slower under RL — by 24% with stop-line
+   preemption on both, 12% with a corridor on both — because the agents give the side street
+   less green; with the corridor on the RL grid only it is 8.9% faster on average. The
+   point-queue model also lets an emergency vehicle wait behind the queue ahead of it, and the
+   policy itself never sees an emergency in training, so its emergency flags and the
+   `w_emergency` bonus do not change what it does.
 
 ---
 
@@ -289,7 +323,7 @@ The project delivers a complete, runnable multi-agent DRL traffic-signal control
 **adapts to live traffic, coordinates across intersections, prioritises emergency vehicles,
 and is rigorously benchmarked** against fixed-time and max-pressure baselines across four
 densities. It reaches the proposal's **40–50% waiting-time and queue reduction** target in the
-congested regimes it was aimed at (**49%** at high, **61%** at rush), with a **≈38%** mean across
+congested regimes it was aimed at (**48%** at high, **61%** at rush), with a **≈38%** mean across
 all four densities on identical traffic, and ships with a polished
 real-time dashboard for live demonstration — meeting every objective set for the project.
 

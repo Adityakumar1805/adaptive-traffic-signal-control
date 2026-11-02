@@ -200,7 +200,7 @@ def build_app(session: DashboardSession):
                 await task
             await hub.close_all()
 
-    app = FastAPI(title="Adaptive Traffic Signal Control - Live Dashboard", lifespan=lifespan,
+    app = FastAPI(title="MARL Traffic Signal Control - Live Dashboard", lifespan=lifespan,
                   docs_url=None, redoc_url=None, openapi_url=None)
     app.state.session = session
     app.state.hub = hub

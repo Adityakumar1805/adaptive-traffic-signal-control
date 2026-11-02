@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ==========================================================================
-#  Adaptive Traffic Signal Control (RL) - one-command launcher (macOS/Linux).
+#  MARL Traffic Signal Control - one-command launcher (macOS/Linux).
 #  Creates a virtual env with a supported Python (3.10 - 3.12), installs the
 #  pinned dependencies, then opens the live dashboard. Pass a subcommand to
 #  override, e.g.:  ./run.sh train --quick      ./run.sh eval      ./run.sh doctor

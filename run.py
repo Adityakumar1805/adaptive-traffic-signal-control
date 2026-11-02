@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Single entry point for the Adaptive Traffic Signal Control project.
+"""Single entry point for the MARL Traffic Signal Control project.
 
 Usage
 -----
@@ -37,7 +37,7 @@ def cmd_doctor(args) -> int:
 
     from atsc import __version__
     print("=" * 64)
-    print(f"  ATSC environment check  (version {__version__})")
+    print(f"  MARL Traffic Signal Control - environment check ({__version__})")
     print("=" * 64)
     print(f"  Python           : {platform.python_version()}  ({platform.system()})")
 
@@ -185,7 +185,7 @@ def cmd_demo(args) -> int:
 
 def main() -> int:
     parser = argparse.ArgumentParser(
-        prog="run.py", description="Adaptive Traffic Signal Control (RL)")
+        prog="run.py", description="MARL Traffic Signal Control")
     parser.add_argument("--config", default=None, help="path to config.yaml")
     parser.add_argument("--debug", action="store_true", help="show full tracebacks on errors")
     sub = parser.add_subparsers(dest="command")

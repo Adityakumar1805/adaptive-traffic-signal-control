@@ -4,7 +4,9 @@
 #                 browser-model and tracker tests), so nothing is skipped;
 #                 then the 36-run benchmark is rerun from the shipped checkpoint - once with
 #                 PyTorch and once with the NumPy network the hosted site uses - and must
-#                 reproduce outputs/benchmark_*.csv and the summary byte for byte.
+#                 reproduce outputs/benchmark_*.csv and the summary byte for byte; and the
+#                 emergency-vehicle evaluation must reproduce outputs/emergency/ (its CSVs and
+#                 results table) and pass: every emergency type faster under RL.
 #   hosted-stack  installs requirements-deploy.txt (no torch) on render.yaml's Python, starts
 #                 render.yaml's exact start command and checks /healthz and the WebSocket.
 #
@@ -68,6 +70,11 @@ jobs:
           grep -q "^  nn_backend: numpy" "$RUNNER_TEMP/config_numpy.yaml"
           python run.py --config "$RUNNER_TEMP/config_numpy.yaml" eval
           git diff --exit-code -- outputs/benchmark_results.csv outputs/benchmark_summary.csv outputs/benchmark_summary.md
+
+      - name: Reproduce the emergency-vehicle evaluation (every type must pass)
+        run: |
+          python tools/emergency_eval.py
+          git diff --exit-code -- outputs/emergency/emergency_dispatches.csv outputs/emergency/emergency_summary.csv outputs/emergency/emergency_comparison.csv outputs/emergency/emergency_results.md
 
   hosted-stack:
     name: Hosted stack (requirements-deploy.txt, no torch)

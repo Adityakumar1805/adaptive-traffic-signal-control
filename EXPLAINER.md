@@ -1,6 +1,6 @@
 # EXPLAINER.md — Study & Viva Reference
 
-**Project:** AI-Based Adaptive Traffic Signal Control System using Reinforcement Learning
+**Project:** MARL Traffic Signal Control using Multi-Agent Reinforcement Learning
 **Author:** Aditya Kumar
 
 > This document is grounded in the actual repository. Every hyperparameter and design
@@ -9,7 +9,7 @@
 >
 > **Two corrections to the headline facts up front (verified against the code):**
 > 1. **Emergency clearance is NOT ~10× faster.** In the shipped model the measured
->    improvement is **1.3× (low) to 3.5× (rush)** — source `outputs/benchmark_results.csv`.
+>    improvement is **1.4× (low) to 4.5× (rush)** — source `outputs/benchmark_results.csv`.
 >    The "10×" came from an earlier, more-saturated rush setting that was later changed.
 >    Quote the real range in the viva.
 > 2. **Rush hour is modelled as *sustained* heavy demand, not a time-varying surge**
@@ -17,8 +17,8 @@
 >    deliberate and tied to the one honest limitation (§11).
 >
 > Everything else in the brief checks out: **43 Python modules** (`find src -name '*.py'`),
-> **172 tests** (16 files in `tests/`), **observation dimension = 23** (`src/atsc/envs/spaces.py`),
-> results **Low −15% / Medium −27% / High −49% / Rush −61%, mean ≈38%**
+> **189 tests** (18 files in `tests/`), **observation dimension = 23** (`src/atsc/envs/spaces.py`),
+> results **Low −16% / Medium −28% / High −48% / Rush −61%, mean ≈38%**
 > (`outputs/benchmark_summary.md`), and the safety machine verified over **18,000 random
 > requests** (`tests/test_phases_safety.py`, 6000 steps × 3 seeds).
 
@@ -49,8 +49,8 @@ East–West gets 30 seconds, forever, regardless of whether one side is jammed a
 is empty. Real traffic is *asymmetric* (a main road carries far more cars than a side
 street) and *changes over the day*. A metronome can't adapt, so cars idle at red lights
 with nobody crossing the other way — wasting **time, fuel, and producing emissions** for no
-benefit. Adaptive control means: *look at the queues, then spend green where the cars
-actually are.*
+benefit. Our controller instead does this: *look at the queues, then spend green where the
+cars actually are.*
 
 **Why this is a reinforcement-learning (RL) problem.** Controlling a signal is a
 **sequential decision problem under uncertainty**: each decision (hold or switch) changes
@@ -158,7 +158,7 @@ Every dependency below is really pinned in `requirements.txt`.
 | **Pandas** | 2.1.4 | Dataframes | Aggregates benchmark results, writes CSV/markdown tables (`eval/benchmark.py`) | Best tool for tabular metric aggregation |
 | **Matplotlib** | 3.8.4 | Plotting | Comparison bar charts, training curve (`eval/plots.py`) | Standard, headless-capable (`Agg` backend) |
 | **PyYAML** | 6.0.1 | YAML parser | Loads `config.yaml` (`config.py`) | Human-readable config; one source of truth |
-| **pytest** | 8.2.0 | Test framework | Runs the 172 tests (`tests/`), locally and in GitHub Actions on every push | De-facto Python testing standard |
+| **pytest** | 8.2.0 | Test framework | Runs the 189 tests (`tests/`), locally and in GitHub Actions on every push | De-facto Python testing standard |
 | **SUMO + TraCI / libsumo** | (installed separately, optional) | Microscopic traffic simulator + its Python control API | Primary simulator backend (`sim/sumo_backend.py`, `sim/netgen.py`) | SUMO is the academic-standard traffic simulator; TraCI is its real-time control protocol |
 
 Note: **WebSocket** is not a library we install — it is a browser/HTTP protocol; FastAPI
@@ -207,7 +207,7 @@ roughly [0,1] (or [-1,1] for pressure).
 | 2 | Per-approach **cumulative waiting time** (N,E,S,W) | 4 | sum of seconds vehicles on that approach have waited | ÷ `WAIT_NORM=100` | Distinguishes "5 cars just arrived" from "5 cars stuck a long time" (fairness/starvation) |
 | 3 | **Current phase** one-hot | 2 | which phase is green now (NS=[1,0], EW=[0,1]) | — | The agent must know its own current state |
 | 4 | **Green-time-so-far** | 1 | seconds current green has run ÷ `max_green` | `time_since_change_frac()` | Lets it respect min/max green and time switches |
-| 5 | Per-approach **emergency flag** (N,E,S,W) | 4 | 1 if an emergency vehicle is present, else 0 | 0/1 | Makes the learned policy emergency-aware |
+| 5 | Per-approach **emergency flag** (N,E,S,W) | 4 | 1 if an emergency vehicle is present, else 0 | 0/1 | Meant to make the policy emergency-aware; training never sends an emergency vehicle, so the flags are always 0 in training and the shipped policy does not react to them (the preemption override does, §9) |
 | 6 | **Neighbour pressure** (N,E,S,W sides) | 4 | `tanh(neighbour_pressure / 40)`; 0 if no neighbour | `PRESSURE_NORM=40` | Coordination signal — see what's building up next door |
 | 7 | **Neighbour phase** (N,E,S,W sides) | 4 | neighbour's current phase index ÷ its `n_phases`; 0 if none | — | Lets agents align greens into a green wave |
 
@@ -419,30 +419,47 @@ cause an unsafe signal.
 
 ## 9. EMERGENCY-VEHICLE PREEMPTION
 
-**Plain English.** When an ambulance approaches, the system detects it and forces a green
-corridor in its direction — but still through the safe yellow/all-red sequence — so it barely
-stops. We measured how long an emergency vehicle takes to cross under our system vs the fixed
-timer.
+**Plain English.** The moment an ambulance, police car or fire engine is sent, the RL system
+turns every light still ahead of it green in its direction — but still through the safe
+yellow/all-red sequence — so the queue in front of it has started to move before it gets
+there. The fixed-time system does what a stand-alone signal can: it changes a light once the
+vehicle is waiting at it. We measured how long each emergency vehicle takes to cross under
+both.
 
 **Technical (`src/atsc/control/emergency.py`, class `EmergencyController`).** Real preemption
 systems (e.g. Opticom) are **rule-based overrides**, and that's exactly what we implement —
 this is deterministic, not learned, which is the safe/credible choice. Each decision,
-`apply(env)` scans every intersection; if any approach has `backend.emergency_present(...)`
-true, it finds the phase whose `green_approaches` include that approach and calls
-`env.fsms[iid].request(phase.index)` — **overriding** the RL/baseline request for that
-junction. Safety is preserved because the request still goes through the `SignalFSM`, so the
-mandatory yellow + all-red are still inserted. Preemption is enabled by
-`config.yaml → emergency.preemption: true`. The learned policy is *also* emergency-aware
-because the reward gives a +5 bonus for clearing one (§5.3) and the state includes emergency
-flags (§5.1).
+`apply(env)` picks the junctions to pre-empt and calls `env.fsms[iid].request(phase.index)`
+for the phase whose `green_approaches` include the vehicle's approach — **overriding** the
+RL/baseline request for that junction. There are two modes. **Corridor** (the RL system,
+`config.yaml → emergency.corridor: [rl]`): `backend.emergency_routes()` lists every emergency
+vehicle with the junctions still ahead of it, and every one of those junctions is pre-empted
+until the vehicle has crossed it; where two vehicles want one junction, the closer one wins.
+**Stop line** (fixed-time and max-pressure): a junction is pre-empted while
+`backend.emergency_present(...)` is true, i.e. once the vehicle waits there. Safety is
+preserved because the request still goes through the `SignalFSM`, so the mandatory yellow +
+all-red are still inserted. Preemption is enabled by `config.yaml → emergency.preemption:
+true`. The reward does have a +5 bonus for clearing an emergency vehicle and the state has
+emergency flags, but training never sends one, so the learned policy itself does not react
+to them — everything an emergency vehicle gets comes from this override.
 
 **Measured clearance improvement (⚠ CORRECTION — real numbers).** Emergency clearance time =
 total seconds an emergency vehicle spends crossing the network from injection to exit. From
-`outputs/benchmark_results.csv` (shipped model): fixed-time vs RL is **26.0 → 20.0 s (1.3×)
-low, 28.7 → 18.3 s (1.6×) medium, 80.0 → 41.7 s (1.9×) high, 113.7 → 32.7 s (3.5×) rush**. So
-the honest headline is **"1.3× to 3.5× faster, and the gap grows with congestion (up to ~3.5×
+`outputs/benchmark_results.csv` (shipped model): fixed-time vs RL is **26.0 → 18.7 s (1.4×)
+low, 28.7 → 16.3 s (1.8×) medium, 80.0 → 31.7 s (2.5×) high, 113.7 → 25.3 s (4.5×) rush**. So
+the honest headline is **"1.4× to 4.5× faster, and the gap grows with congestion (up to ~4.5×
 at rush)."** *(Do not claim 10× — that figure was from an earlier, more-gridlocked rush
 setting.)*
+
+**Every emergency type** (`python tools/emergency_eval.py`, `outputs/emergency/`): 1,000
+matched dispatches per type (4 densities × seeds 0–9 × 25 moments, each in its own copy of the
+running simulation). Average travel time fixed-time → RL: **ambulance 61.7 → 24.5 s (−60%),
+police car 22.9 → 20.9 s (−9%), fire engine 64.0 → 26.3 s (−59%)**, lower under RL at every
+density. Be ready for the follow-up on the police car: it is the only one on the side street,
+where the agents give less green than fixed-time's even split, so it often meets a red light
+and a longer queue at its first junction; the corridor wins it back at the second junction. At
+rush its lead is only 0.5 s, and with the same preemption on both grids it would be slower
+under RL (−12% with a corridor on both, −24% with stop-line preemption on both).
 
 ---
 
@@ -486,13 +503,13 @@ simulator (`eval.backend: mini`; `--backend sumo` for a SUMO run into `outputs/s
 
 | Scenario | Avg wait — Fixed | Max-Pressure | **RL** | **RL vs Fixed** | Queue Fixed→RL | Emerg. clear Fixed→RL |
 |---|---:|---:|---:|---:|---:|---:|
-| Low | 26.3 s | 19.2 s | 22.3 s | **−15%** | 3.0 → 2.5 | 26.0 → 20.0 s (1.3×) |
-| Medium | 34.3 s | 22.5 s | 25.2 s | **−27%** | 6.8 → 5.0 | 28.7 → 18.3 s (1.6×) |
-| High | 68.7 s | 35.6 s | 35.2 s | **−49%** | 20.1 → 10.2 | 80.0 → 41.7 s (1.9×) |
-| Rush | 113.0 s | 50.5 s | 43.9 s | **−61%** | 36.5 → 14.1 | 113.7 → 32.7 s (3.5×) |
+| Low | 26.3 s | 19.2 s | 22.0 s | **−16%** | 3.0 → 2.5 | 26.0 → 18.7 s (1.4×) |
+| Medium | 34.3 s | 22.5 s | 24.8 s | **−28%** | 6.8 → 4.9 | 28.7 → 16.3 s (1.8×) |
+| High | 68.7 s | 35.6 s | 35.6 s | **−48%** | 20.1 → 10.4 | 80.0 → 31.7 s (2.5×) |
+| Rush | 113.0 s | 50.5 s | 43.9 s | **−61%** | 36.5 → 14.2 | 113.7 → 25.3 s (4.5×) |
 | **Mean** | | | | **≈ −38%** | | |
 
-At **high** density RL also lifts throughput (2002 → 2058 veh) and average speed (2.6 → 4.3
+At **high** density RL also lifts throughput (2002 → 2057 veh) and average speed (2.6 → 4.3
 m/s) vs fixed-time (`benchmark_results.csv`).
 
 **Interpretation (be ready to explain each):**
@@ -571,7 +588,7 @@ SUMO is the higher-fidelity path.
 - `threads.py` — pins the maths libraries to one thread on the hosted server (see `docs/DEPLOYMENT.md`).
 
 **Other folders**
-- `tests/` — 172 tests in 16 files: the core (`test_env.py`, `test_phases_safety.py`, `test_reward.py`, `test_replay.py`, `test_controllers.py`, `test_benchmark_math.py`, `test_agents_compat.py`), the dashboard (`test_dashboard_session.py`, `test_dashboard_ws.py`, `test_dashboard_model_js.py`, `test_stdlib_server.py`, `test_static_assets.py`, `test_threads.py`), the vehicles (`test_vehicles.py`) and emergency tracking (`test_emergency_tracking.py`, `test_tracker_js.py`); plus `conftest.py` and `dashboard_model.py` (a Python mirror of the browser's frame handling).
+- `tests/` — 189 tests in 18 files: the core (`test_env.py`, `test_phases_safety.py`, `test_reward.py`, `test_replay.py`, `test_controllers.py`, `test_benchmark_math.py`, `test_agents_compat.py`), emergency preemption and its evaluation (`test_emergency_corridor.py`, `test_emergency_eval.py`), the dashboard (`test_dashboard_session.py`, `test_dashboard_ws.py`, `test_dashboard_model_js.py`, `test_stdlib_server.py`, `test_static_assets.py`, `test_threads.py`), the vehicles (`test_vehicles.py`) and emergency tracking (`test_emergency_tracking.py`, `test_tracker_js.py`); plus `conftest.py` and `dashboard_model.py` (a Python mirror of the browser's frame handling).
 - `models/pretrained/` — shipped checkpoint `atsc_2x2.pt` (+ `_final.pt`); portable NumPy-array pickle.
 - `outputs/` — generated CSVs + PNG plots + training logs.
 - `docs/screenshots/` — the dashboard stills and the animation in the README (the plots are shown straight from `outputs/`).
@@ -727,10 +744,12 @@ SUMO is the higher-fidelity path.
     inside its episodes); `--quick` is 8 episodes, under a minute.
 
 20. **How is the emergency vehicle detected and handled, safely?**
-    The backend exposes `emergency_present(intersection, approach)`; `EmergencyController.apply`
-    forces the phase serving that approach via `fsm.request`, overriding the normal controller
-    — but still through the FSM, so yellow/all-red are preserved. Measured clearance is 1.3×
-    (low) to 3.5× (rush) faster than fixed-time.
+    The backend reports each emergency vehicle with the junctions still ahead of it
+    (`emergency_routes()`); on the RL grid `EmergencyController.apply` forces the phase serving
+    the vehicle at every one of them (a green corridor), on the fixed-time grid only at the one
+    it waits at (`emergency_present`), via `fsm.request`, overriding the normal controller — but
+    still through the FSM, so yellow/all-red are preserved. Measured clearance is 1.4× (low) to
+    4.5× (rush) faster than fixed-time, and every emergency type is faster on average.
 
 21. **Why a 2×2 grid and not one junction or a whole city?**
     One junction can't show coordination/green waves — the core novelty. 2×2 is the smallest

@@ -41,7 +41,8 @@ def run_controlled_episode(
     controller.reset()
 
     if inject_emergency and with_preemption:
-        env.set_emergency_controller(EmergencyController(cfg, topo))
+        # each controller gets its own kind of preemption (emergency.corridor)
+        env.set_emergency_controller(EmergencyController(cfg, topo, controller=controller.name))
 
     env.reset(scenario=scenario, seed=seed)
     inject_at = emergency_time_frac * episode_s

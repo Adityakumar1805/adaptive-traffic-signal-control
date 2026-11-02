@@ -175,6 +175,12 @@ def validate_config(cfg: Config) -> None:
         from atsc import vehicles
         errors.extend(vehicles.mix_errors(cfg.get_path("traffic_mix")))
         errors.extend(vehicles.emergency_errors(cfg.get_path("emergency.types")))
+        corridor = cfg.get_path("emergency.corridor", None)
+        known = ("fixed_time", "max_pressure", "rl")
+        if corridor is not None and (not isinstance(corridor, list)
+                                     or any(c not in known for c in corridor)):
+            errors.append("  - emergency.corridor must be a list of controllers out of: "
+                          + ", ".join(known))
         _validate_dashboard(cfg, errors)
 
     if errors:
