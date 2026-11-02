@@ -1,4 +1,4 @@
-# MARL Traffic Signal Control using Multi-Agent Reinforcement Learning
+# AI-Based Adaptive Traffic Signal Control System using Reinforcement Learning
 ### Project Report
 
 | | |

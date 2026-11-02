@@ -6,7 +6,7 @@
   <meta name="color-scheme" content="dark">
   <meta name="theme-color" content="#090e1a">
   <meta name="description" content="Live race on identical traffic: an RL Agent System (four multi-agent deep reinforcement learning signal controllers) against a traditional fixed-time system, with live emergency-vehicle tracking.">
-  <title>MARL Traffic Signal Control · Live</title>
+  <title>Adaptive Traffic Signal Control · Live</title>
   <link rel="icon" href="/static/icon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="/static/styles.css">
   <script type="module" src="/static/js/main.js"></script>
@@ -18,7 +18,7 @@
     <header class="top">
       <svg class="logo" viewBox="0 0 20 40" aria-hidden="true"><rect x="1" y="1" width="18" height="38" rx="6" class="logo-body"/><circle cx="10" cy="9.5" r="4.2" class="lamp-r"/><circle cx="10" cy="20" r="4.2" class="lamp-a"/><circle cx="10" cy="30.5" r="4.2" class="lamp-g"/></svg>
       <div class="titles">
-        <h1>MARL Traffic Signal Control</h1>
+        <h1>Adaptive Traffic Signal Control</h1>
         <p class="sub"><span class="long">Same vehicles enter both grids at the same moments — <span class="c-rl">green</span> is the RL Agent System, <span class="c-tr">grey</span> the Traditional Traffic System. Lower numbers are better.</span><span class="short">Same traffic on both grids · <span class="c-rl">green</span> = RL Agent System · lower is better</span></p>
       </div>
       <div class="status">
@@ -130,7 +130,7 @@
             <div class="one tr"><span class="who tr"><i></i>Traditional System</span><span class="num"><span id="wFT">–</span><small>s</small></span></div>
           </div>
           <p class="note" id="resNote">The numbers fill in as vehicles arrive.</p>
-          <p class="bench">Benchmark, 36 runs: <b>16%</b> less waiting in light traffic, <b>61%</b> less at rush hour · <a href="https://github.com/Adityakumar1805/marl-traffic-signal-control/blob/main/REPORT.md" target="_blank" rel="noopener">Full report ↗</a></p>
+          <p class="bench">Benchmark, 36 runs: <b>16%</b> less waiting in light traffic, <b>61%</b> less at rush hour · <a href="https://github.com/Adityakumar1805/adaptive-traffic-signal-control/blob/main/REPORT.md" target="_blank" rel="noopener">Full report ↗</a></p>
         </section>
 
         <div class="tiles" id="tiles">
@@ -168,7 +168,7 @@
 
     <footer class="foot">
       <span>Both grids get identical traffic. A safety layer adds a 3 s amber and 2 s all-red to every change, on both.</span>
-      <nav aria-label="Project links"><a href="https://github.com/Adityakumar1805/marl-traffic-signal-control" target="_blank" rel="noopener">Source code</a><a href="https://github.com/Adityakumar1805/marl-traffic-signal-control/blob/main/REPORT.md" target="_blank" rel="noopener">Full report</a><a href="/healthz">Server status</a></nav>
+      <nav aria-label="Project links"><a href="https://github.com/Adityakumar1805/adaptive-traffic-signal-control" target="_blank" rel="noopener">Source code</a><a href="https://github.com/Adityakumar1805/adaptive-traffic-signal-control/blob/main/REPORT.md" target="_blank" rel="noopener">Full report</a><a href="/healthz">Server status</a></nav>
       <span class="keys">Shortcuts: <kbd>Space</kbd> pause · <kbd>R</kbd> restart · <kbd>E</kbd> emergency vehicle · <kbd>F</kbd> focus</span>
     </footer>
   </div>

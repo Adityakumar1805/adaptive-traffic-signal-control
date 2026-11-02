@@ -58,7 +58,7 @@ visitors see the page's own **Waking up the server…** screen during that time 
 
    and, once you open the page, `"WebSocket /ws" [accepted]` and `connection open`.
 6. Open the URL Render prints. **If it is not
-   `https://marl-traffic-signal-control.onrender.com`** — the name may already be taken —
+   `https://adaptive-traffic-signal-control.onrender.com`** — the name may already be taken —
    update the links at the top of `README.md`.
 
 There are no secrets, no database and no API keys to add.
@@ -112,7 +112,7 @@ to GitHub does not redeploy it by itself.
 
    ```yaml
    ---
-   title: MARL Traffic Signal Control
+   title: Adaptive Traffic Signal Control
    sdk: docker
    app_port: 7860
    ---

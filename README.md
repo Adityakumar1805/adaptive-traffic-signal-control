@@ -1,23 +1,23 @@
-# MARL Traffic Signal Control
+# Adaptive Traffic Signal Control with Deep Reinforcement Learning
 
 <div align="center">
 
 <!-- Render assigns the hostname on the first deploy. If yours differs, update the two
      links that point at it: the badge here and the one in the Live demo section. -->
 
-<a href="https://marl-traffic-signal-control.onrender.com"><img alt="Open the live dashboard" src="https://img.shields.io/badge/%F0%9F%9A%80%20Live%20Demo-open%20the%20dashboard-22c55e?style=for-the-badge&labelColor=0b1120"></a>
+<a href="https://adaptive-traffic-signal-control.onrender.com"><img alt="Open the live dashboard" src="https://img.shields.io/badge/%F0%9F%9A%80%20Live%20Demo-open%20the%20dashboard-22c55e?style=for-the-badge&labelColor=0b1120"></a>
 &nbsp;
-<a href="https://render.com/deploy?repo=https://github.com/Adityakumar1805/marl-traffic-signal-control"><img alt="Deploy your own copy on Render" src="https://img.shields.io/badge/Deploy%20your%20own-Render-46e3b7?style=for-the-badge&labelColor=0b1120"></a>
+<a href="https://render.com/deploy?repo=https://github.com/Adityakumar1805/adaptive-traffic-signal-control"><img alt="Deploy your own copy on Render" src="https://img.shields.io/badge/Deploy%20your%20own-Render-46e3b7?style=for-the-badge&labelColor=0b1120"></a>
 
 <sub>Free instance: if it has been idle for a while the first request takes about a minute to wake it (returning visitors see a "Waking up the server…" screen). Everything after that is real time.</sub>
 
-<img src="docs/assets/hero.svg" alt="MARL Traffic Signal Control, multi-agent deep reinforcement learning for traffic signals: four Double and Dueling DQN agents on a 2x2 grid, neighbour-aware, safety-gated, ambulance-priority" width="100%">
+<img src="docs/assets/hero.svg" alt="Multi-agent deep reinforcement learning for adaptive traffic signal control: four Double and Dueling DQN agents on a 2x2 grid, neighbour-aware, safety-gated, ambulance-priority" width="100%">
 
 <p>
   <img alt="Python 3.10 to 3.12" src="https://img.shields.io/badge/Python-3.10%20%E2%80%93%203.12-3776AB?logo=python&logoColor=white">
   <img alt="PyTorch 2.2 with a NumPy fallback" src="https://img.shields.io/badge/PyTorch-2.2%20%C2%B7%20NumPy%20fallback-EE4C2C?logo=pytorch&logoColor=white">
   <img alt="SUMO optional" src="https://img.shields.io/badge/SUMO-optional-00A0A0">
-  <a href="https://github.com/Adityakumar1805/marl-traffic-signal-control/actions/workflows/ci.yml"><img alt="CI: tests and benchmark reproduction" src="https://github.com/Adityakumar1805/marl-traffic-signal-control/actions/workflows/ci.yml/badge.svg?branch=main"></a>
+  <a href="https://github.com/Adityakumar1805/adaptive-traffic-signal-control/actions/workflows/ci.yml"><img alt="CI: tests and benchmark reproduction" src="https://github.com/Adityakumar1805/adaptive-traffic-signal-control/actions/workflows/ci.yml/badge.svg?branch=main"></a>
   <img alt="36 benchmark runs" src="https://img.shields.io/badge/benchmark-36%20runs-38bdf8">
   <img alt="MIT licence" src="https://img.shields.io/badge/licence-MIT-64748b">
 </p>
@@ -53,7 +53,7 @@ python run.py demo              # dashboard on http://127.0.0.1:8000 — nothing
 
 ## 🚀 Live demo
 
-### **<https://marl-traffic-signal-control.onrender.com>**
+### **<https://adaptive-traffic-signal-control.onrender.com>**
 
 No install, no SUMO, no checkpoint to train — the hosted instance runs the same shipped
 model as the local demo. Three things worth doing in the first minute:

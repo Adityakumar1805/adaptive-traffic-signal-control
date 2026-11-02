@@ -2,7 +2,7 @@
 
     pip install playwright && python -m playwright install chromium     # once
     python tools/e2e_browser.py --local                  # starts its own server, full run
-    python tools/e2e_browser.py https://marl-traffic-signal-control.onrender.com
+    python tools/e2e_browser.py https://adaptive-traffic-signal-control.onrender.com
 
 Checks, each reported PASS / FAIL:
 

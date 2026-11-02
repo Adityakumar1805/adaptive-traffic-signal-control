@@ -1,6 +1,6 @@
 @echo off
 REM ==========================================================================
-REM  MARL Traffic Signal Control - one-click launcher for Windows.
+REM  Adaptive Traffic Signal Control (RL) - one-click launcher for Windows.
 REM  Creates a virtual env with a supported Python (3.10 - 3.12), installs the
 REM  pinned dependencies, then opens the live dashboard. Pass a subcommand to
 REM  override, e.g.:  run.bat train --quick      run.bat eval      run.bat doctor

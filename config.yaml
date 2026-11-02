@@ -1,5 +1,5 @@
 # ==========================================================================
-#  MARL Traffic Signal Control  —  single source of truth
+#  Adaptive Traffic Signal Control (RL)  —  single source of truth
 #  Every module reads from here. Change values, not code.
 #  Units: seconds (s), metres (m), metres/second (m/s), vehicles/second (veh/s)
 # ==========================================================================

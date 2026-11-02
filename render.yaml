@@ -19,7 +19,7 @@
 
 services:
   - type: web
-    name: marl-traffic-signal-control
+    name: adaptive-traffic-signal-control
     runtime: python
     plan: free
     region: singapore          # nearest region to India; delete this line to use the default (Oregon)

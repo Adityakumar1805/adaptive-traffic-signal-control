@@ -1,5 +1,5 @@
 /* ================================================================
-   MARL Traffic Signal Control - live dashboard.
+   Adaptive Traffic Signal Control - live dashboard.
    Night theme: green = RL Agent System, grey = Traditional Traffic System,
    rose = emergency vehicles. Signal lamps keep their real red / amber / green.
    Laptop: the two maps as big as the screen allows, each with its own status line;

@@ -926,7 +926,7 @@ is consistent with it. Timings are for spoken pace.
 > the side-street demand, and a symmetric fixed cycle simply cannot express that.
 >
 > **(0:20–0:50 — what I built)**
-> I built a multi-agent RL controller for a 2×2 grid of four signalised junctions. Each junction is
+> I built an adaptive controller for a 2×2 grid of four signalised junctions. Each junction is
 > its own reinforcement-learning agent — a Double Dueling DQN with prioritized experience
 > replay. Every five seconds each agent reads 23 numbers: its own four queues and waiting
 > times, its current phase, how long that green has been running, emergency flags, and its

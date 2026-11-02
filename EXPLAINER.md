@@ -1,6 +1,6 @@
 # EXPLAINER.md — Study & Viva Reference
 
-**Project:** MARL Traffic Signal Control using Multi-Agent Reinforcement Learning
+**Project:** AI-Based Adaptive Traffic Signal Control System using Reinforcement Learning
 **Author:** Aditya Kumar
 
 > This document is grounded in the actual repository. Every hyperparameter and design
@@ -49,8 +49,8 @@ East–West gets 30 seconds, forever, regardless of whether one side is jammed a
 is empty. Real traffic is *asymmetric* (a main road carries far more cars than a side
 street) and *changes over the day*. A metronome can't adapt, so cars idle at red lights
 with nobody crossing the other way — wasting **time, fuel, and producing emissions** for no
-benefit. Our controller instead does this: *look at the queues, then spend green where the
-cars actually are.*
+benefit. Adaptive control means: *look at the queues, then spend green where the cars
+actually are.*
 
 **Why this is a reinforcement-learning (RL) problem.** Controlling a signal is a
 **sequential decision problem under uncertainty**: each decision (hold or switch) changes

@@ -2,7 +2,7 @@
 
 ## 1.0.0 — first release
 
-Multi-agent deep reinforcement learning for traffic signal control on a 2 × 2 grid,
+Multi-agent deep reinforcement learning for adaptive traffic signal control on a 2 × 2 grid,
 a reproducible benchmark against two baselines, and a live web dashboard that races the
 learned policy against a fixed-time controller on identical traffic.
 
